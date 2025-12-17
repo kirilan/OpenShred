@@ -175,8 +175,8 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/data-deletion-assistant.git
-cd data-deletion-assistant
+git clone https://github.com/kirilan/anti-spam.git
+cd anti-spam
 ```
 
 #### 2. Set Up Google OAuth Credentials
