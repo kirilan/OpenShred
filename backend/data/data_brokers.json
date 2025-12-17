@@ -1,0 +1,11 @@
+{
+  "brokers": [
+    {
+      "name": "Test Broker",
+      "domains": ["abv.bg", "test-broker.com"],
+      "privacy_email": "kirilan@abv.bg",
+      "opt_out_url": "https://test-broker.com/optout",
+      "category": "test"
+    }
+  ]
+}
