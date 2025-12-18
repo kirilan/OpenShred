@@ -1,12 +1,22 @@
-import { useState } from 'react'
+import { FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useBrokers, useSyncBrokers } from '@/hooks/useBrokers'
+import { useBrokers, useSyncBrokers, useCreateBroker } from '@/hooks/useBrokers'
 import { useCreateRequest } from '@/hooks/useRequests'
 import { Broker } from '@/types'
-import { Database, Globe, Mail, Loader2, AlertTriangle, FileText, RefreshCw } from 'lucide-react'
+import {
+  Database,
+  Globe,
+  Mail,
+  Loader2,
+  AlertTriangle,
+  FileText,
+  RefreshCw,
+  Plus,
+  ChevronUp,
+} from 'lucide-react'
 
 export function BrokerList() {
   const { data: brokers, isLoading, error } = useBrokers()
@@ -85,6 +95,8 @@ export function BrokerList() {
         </div>
       )}
 
+      <CreateBrokerForm />
+
       {brokers && brokers.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {brokers.map((broker) => (
@@ -118,6 +130,189 @@ export function BrokerList() {
   )
 }
 
+function CreateBrokerForm() {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [formValues, setFormValues] = useState({
+    name: '',
+    domains: '',
+    privacy_email: '',
+    opt_out_url: '',
+    category: '',
+  })
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const createBroker = useCreateBroker()
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setError(null)
+    setSuccess(null)
+
+    const trimmedName = formValues.name.trim()
+    const domains = formValues.domains
+      .split(',')
+      .map((domain) => domain.trim())
+      .filter(Boolean)
+
+    if (!trimmedName || domains.length === 0) {
+      setError('Name and at least one domain are required.')
+      return
+    }
+
+    try {
+      await createBroker.mutateAsync({
+        name: trimmedName,
+        domains,
+        privacy_email: formValues.privacy_email.trim() || null,
+        opt_out_url: formValues.opt_out_url.trim() || null,
+        category: formValues.category.trim() || null,
+      })
+      setSuccess('Broker added successfully.')
+      setFormValues({
+        name: '',
+        domains: '',
+        privacy_email: '',
+        opt_out_url: '',
+        category: '',
+      })
+    } catch (err) {
+      const detail =
+        (err as any)?.response?.data?.detail || 'Failed to create broker. Please try again.'
+      setError(detail)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0">
+        <div className="space-y-1">
+          <CardTitle className="text-xl">Manual Broker Entry</CardTitle>
+          <CardDescription>
+            Add a single broker when you discover a new privacy contact.
+          </CardDescription>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsExpanded((prev) => !prev)}
+        >
+          {isExpanded ? (
+            <>
+              <ChevronUp className="mr-2 h-4 w-4" />
+              Hide Form
+            </>
+          ) : (
+            <>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Broker
+            </>
+          )}
+        </Button>
+      </CardHeader>
+      {isExpanded && (
+        <CardContent className="pt-0">
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            {error && (
+              <div className="text-sm rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-600">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="text-sm rounded-md border border-green-200 bg-green-50 px-3 py-2 text-green-600">
+                {success}
+              </div>
+            )}
+
+            <div>
+              <label className="text-sm font-medium">Broker name</label>
+              <input
+                type="text"
+                value={formValues.name}
+                onChange={(event) => setFormValues((prev) => ({ ...prev, name: event.target.value }))}
+                placeholder="Acme Privacy LLC"
+                className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Domains</label>
+              <textarea
+                value={formValues.domains}
+                onChange={(event) => setFormValues((prev) => ({ ...prev, domains: event.target.value }))}
+                placeholder="acmeprivacy.com, privacy.acme.com"
+                className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                rows={2}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Separate multiple domains with commas.
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="text-sm font-medium">Privacy email</label>
+                <input
+                  type="email"
+                  value={formValues.privacy_email}
+                  onChange={(event) =>
+                    setFormValues((prev) => ({ ...prev, privacy_email: event.target.value }))
+                  }
+                  placeholder="privacy@acmeprivacy.com"
+                  className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Opt-out URL</label>
+                <input
+                  type="url"
+                  value={formValues.opt_out_url}
+                  onChange={(event) =>
+                    setFormValues((prev) => ({ ...prev, opt_out_url: event.target.value }))
+                  }
+                  placeholder="https://acmeprivacy.com/opt-out"
+                  className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Category</label>
+              <input
+                type="text"
+                value={formValues.category}
+                onChange={(event) =>
+                  setFormValues((prev) => ({ ...prev, category: event.target.value }))
+                }
+                placeholder="people_search"
+                className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Optional grouping such as <code>people_search</code> or <code>aggregator</code>.
+              </p>
+            </div>
+
+            <div className="flex justify-end">
+              <Button type="submit" disabled={createBroker.isPending}>
+                {createBroker.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Save Broker
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
 function BrokerCard({ broker }: { broker: Broker }) {
   const navigate = useNavigate()
   const createRequest = useCreateRequest()
@@ -138,55 +333,52 @@ function BrokerCard({ broker }: { broker: Broker }) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-lg">{broker.name}</CardTitle>
-          <Badge variant={broker.supports_automated_removal ? 'default' : 'secondary'}>
-            {broker.supports_automated_removal ? 'Auto Removal' : 'Manual'}
-          </Badge>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-lg">{broker.name}</CardTitle>
+            {broker.category && (
+              <Badge variant="outline" className="mt-2 text-xs uppercase tracking-wide">
+                {broker.category.replace('_', ' ')}
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {broker.website && (
+      <CardContent className="space-y-4">
+        {broker.domains && broker.domains.length > 0 && (
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Domains</p>
+            <div className="flex flex-wrap gap-1">
+              {broker.domains.slice(0, 4).map((domain, idx) => (
+                <Badge key={`${broker.id}-domain-${idx}`} variant="outline" className="text-xs">
+                  {domain}
+                </Badge>
+              ))}
+              {broker.domains.length > 4 && (
+                <Badge variant="outline" className="text-xs">
+                  +{broker.domains.length - 4} more
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+        {broker.privacy_email && (
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Mail className="h-4 w-4 mr-2" />
+            <span className="truncate">{broker.privacy_email}</span>
+          </div>
+        )}
+        {broker.opt_out_url && (
           <div className="flex items-center text-sm text-muted-foreground">
             <Globe className="h-4 w-4 mr-2" />
             <a
-              href={broker.website}
+              href={broker.opt_out_url}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline truncate"
             >
-              {broker.website.replace(/^https?:\/\//, '')}
+              {broker.opt_out_url.replace(/^https?:\/\//, '')}
             </a>
-          </div>
-        )}
-        {broker.privacy_policy_url && (
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Mail className="h-4 w-4 mr-2" />
-            <a
-              href={broker.privacy_policy_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline"
-            >
-              Privacy Policy
-            </a>
-          </div>
-        )}
-        {broker.email_patterns && broker.email_patterns.length > 0 && (
-          <div className="pt-2 border-t">
-            <p className="text-xs text-muted-foreground mb-1">Email Patterns:</p>
-            <div className="flex flex-wrap gap-1">
-              {broker.email_patterns.slice(0, 3).map((pattern, idx) => (
-                <Badge key={idx} variant="outline" className="text-xs">
-                  {pattern}
-                </Badge>
-              ))}
-              {broker.email_patterns.length > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{broker.email_patterns.length - 3} more
-                </Badge>
-              )}
-            </div>
           </div>
         )}
         <div className="pt-3 border-t">

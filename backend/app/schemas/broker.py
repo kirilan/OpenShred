@@ -11,6 +11,10 @@ class BrokerBase(BaseModel):
     category: Optional[str] = None
 
 
+class BrokerCreate(BrokerBase):
+    pass
+
+
 class Broker(BrokerBase):
     id: str
     created_at: datetime

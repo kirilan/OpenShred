@@ -2,6 +2,7 @@ import axios from 'axios'
 import type {
   AuthStatus,
   Broker,
+  BrokerCreateInput,
   EmailScan,
   DeletionRequest,
   DeletionRequestCreate,
@@ -50,6 +51,11 @@ export const brokersApi = {
 
   get: async (brokerId: string) => {
     const response = await api.get<Broker>(`/brokers/${brokerId}`)
+    return response.data
+  },
+
+  create: async (data: BrokerCreateInput) => {
+    const response = await api.post<Broker>('/brokers/', data)
     return response.data
   },
 

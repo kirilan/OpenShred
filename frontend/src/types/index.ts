@@ -19,15 +19,19 @@ export interface Broker {
   id: string
   name: string
   domains: string[]
-  email_patterns: string[]
-  privacy_email: string | null
-  opt_out_url: string | null
-  website: string | null
-  privacy_policy_url: string | null
-  supports_automated_removal: boolean
-  category: string | null
+  privacy_email?: string | null
+  opt_out_url?: string | null
+  category?: string | null
   created_at: string
   updated_at: string
+}
+
+export interface BrokerCreateInput {
+  name: string
+  domains: string[]
+  privacy_email?: string | null
+  opt_out_url?: string | null
+  category?: string | null
 }
 
 // Email scan types

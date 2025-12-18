@@ -4,7 +4,7 @@ from typing import List
 
 from app.database import get_db
 from app.services.broker_service import BrokerService
-from app.schemas.broker import Broker, BrokerSyncResult
+from app.schemas.broker import Broker, BrokerSyncResult, BrokerCreate
 
 router = APIRouter()
 
@@ -38,6 +38,27 @@ def get_broker(broker_id: str, db: Session = Depends(get_db)):
 
     if not broker:
         raise HTTPException(status_code=404, detail="Broker not found")
+
+    return Broker(
+        id=str(broker.id),
+        name=broker.name,
+        domains=broker.domains,
+        privacy_email=broker.privacy_email,
+        opt_out_url=broker.opt_out_url,
+        category=broker.category,
+        created_at=broker.created_at,
+        updated_at=broker.updated_at
+    )
+
+
+@router.post("/", response_model=Broker, status_code=201)
+def create_broker(broker_data: BrokerCreate, db: Session = Depends(get_db)):
+    """Create a new data broker"""
+    service = BrokerService(db)
+    try:
+        broker = service.create_broker(broker_data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     return Broker(
         id=str(broker.id),

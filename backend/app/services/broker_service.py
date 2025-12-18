@@ -4,6 +4,7 @@ from typing import List
 from sqlalchemy.orm import Session
 
 from app.models.data_broker import DataBroker
+from app.schemas.broker import BrokerCreate
 
 
 class BrokerService:
@@ -66,3 +67,34 @@ class BrokerService:
     def get_broker_by_id(self, broker_id: str) -> DataBroker:
         """Get broker by ID"""
         return self.db.query(DataBroker).filter(DataBroker.id == broker_id).first()
+
+    def create_broker(self, broker_data: BrokerCreate) -> DataBroker:
+        """Create a new broker record"""
+        normalized_domains = [
+            domain.strip().lower()
+            for domain in broker_data.domains
+            if domain and domain.strip()
+        ]
+
+        if not normalized_domains:
+            raise ValueError("At least one valid domain is required")
+
+        existing = self.db.query(DataBroker).filter(
+            DataBroker.name == broker_data.name.strip()
+        ).first()
+
+        if existing:
+            raise ValueError("Broker with this name already exists")
+
+        broker = DataBroker(
+            name=broker_data.name.strip(),
+            domains=normalized_domains,
+            privacy_email=broker_data.privacy_email.strip() if broker_data.privacy_email else None,
+            opt_out_url=broker_data.opt_out_url.strip() if broker_data.opt_out_url else None,
+            category=broker_data.category.strip() if broker_data.category else None
+        )
+
+        self.db.add(broker)
+        self.db.commit()
+        self.db.refresh(broker)
+        return broker

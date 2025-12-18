@@ -26,3 +26,14 @@ export function useSyncBrokers() {
     },
   })
 }
+
+export function useCreateBroker() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: brokersApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brokers'] })
+    },
+  })
+}
