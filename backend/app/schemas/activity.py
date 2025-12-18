@@ -9,11 +9,11 @@ class ActivityLogResponse(BaseModel):
     user_id: str
     activity_type: ActivityType
     message: str
-    details: Optional[str]
-    broker_id: Optional[str]
-    deletion_request_id: Optional[str]
-    response_id: Optional[str]
-    email_scan_id: Optional[str]
+    details: Optional[str] = None
+    broker_id: Optional[str] = None
+    deletion_request_id: Optional[str] = None
+    response_id: Optional[str] = None
+    email_scan_id: Optional[str] = None
     created_at: datetime
 
     class Config:
