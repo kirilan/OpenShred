@@ -1,11 +1,13 @@
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from google.oauth2.credentials import Credentials
 from typing import Optional, List, Dict
 import os
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 
 from app.config import settings
+from app.exceptions import GmailQuotaExceededError
 from app.models.user import User
 
 
@@ -277,6 +279,41 @@ class GmailService:
                 'thread_id': sent_message.get('threadId'),
                 'label_ids': sent_message.get('labelIds', [])
             }
+        except HttpError as http_error:
+            status = getattr(http_error.resp, 'status', None)
+            retry_after_header = None
+            if hasattr(http_error, 'resp') and getattr(http_error.resp, 'headers', None):
+                retry_after_header = http_error.resp.headers.get('Retry-After')
+
+            rate_limit_reasons = {'rateLimitExceeded', 'userRateLimitExceeded', 'quotaExceeded'}
+            reasons = []
+            if getattr(http_error, 'error_details', None):
+                for detail in http_error.error_details:
+                    reason = detail.get('reason')
+                    if reason:
+                        reasons.append(reason)
+
+            if not reasons:
+                try:
+                    reasons.append(http_error._get_reason())
+                except Exception:
+                    pass
+
+            # Determine if the error is due to Gmail quota/rate limit
+            if status in (403, 429) and any(
+                reason for reason in reasons if reason and any(r in reason for r in rate_limit_reasons)
+            ):
+                retry_after = None
+                if retry_after_header:
+                    try:
+                        retry_after = int(retry_after_header)
+                    except ValueError:
+                        retry_after = None
+
+                message = http_error._get_reason() if hasattr(http_error, "_get_reason") else "Gmail quota exceeded"
+                raise GmailQuotaExceededError(message=message, retry_after=retry_after)
+
+            raise Exception(f"Failed to send email: {http_error}")
         except Exception as e:
-            # Handle quota limits, bounces, etc.
+            # Handle other failures
             raise Exception(f"Failed to send email: {str(e)}")

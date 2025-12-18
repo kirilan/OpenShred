@@ -8,6 +8,7 @@ import {
   useTimeline,
   useResponseDistribution,
 } from '@/hooks/useAnalytics'
+import { useRequests } from '@/hooks/useRequests'
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import {
   TrendingUp,
@@ -27,6 +28,8 @@ export function AnalyticsDashboard() {
   const { data: brokerRanking, isLoading: rankingLoading } = useBrokerRanking()
   const { data: timeline, isLoading: timelineLoading } = useTimeline(timelineDays)
   const { data: distribution, isLoading: distributionLoading } = useResponseDistribution()
+  const { data: requests } = useRequests()
+  const requestBrokerIds = new Set(requests?.map((request) => request.broker_id) || [])
 
   if (statsLoading) {
     return (
@@ -167,30 +170,38 @@ export function AnalyticsDashboard() {
               </div>
             ) : brokerRanking && brokerRanking.length > 0 ? (
               <div className="space-y-3">
-                {brokerRanking.slice(0, 10).map((broker, index) => (
-                  <div key={broker.broker_id} className="flex items-center gap-3 p-3 border rounded-lg">
-                    <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{broker.broker_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {broker.confirmations}/{broker.total_requests} requests
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={broker.success_rate >= 80 ? 'default' : 'secondary'}>
-                        {Math.round(broker.success_rate)}%
-                      </Badge>
-                      {broker.avg_response_time_days !== null && (
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {broker.avg_response_time_days.toFixed(1)}d
+                {brokerRanking.slice(0, 10).map((broker, index) => {
+                  const hasRequest = requestBrokerIds.has(broker.broker_id)
+                  return (
+                    <div key={broker.broker_id} className="flex items-center gap-3 p-3 border rounded-lg">
+                      <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{broker.broker_name}</p>
+                          <Badge variant={hasRequest ? 'default' : 'outline'} className="text-[10px]">
+                            {hasRequest ? 'Request created' : 'No request yet'}
+                          </Badge>
                         </div>
-                      )}
+                        <p className="text-xs text-muted-foreground">
+                          {broker.confirmations}/{broker.total_requests} requests
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={broker.success_rate >= 80 ? 'default' : 'secondary'}>
+                          {Math.round(broker.success_rate)}%
+                        </Badge>
+                        {broker.avg_response_time_days !== null && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {broker.avg_response_time_days.toFixed(1)}d
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className="flex items-center justify-center h-64 text-muted-foreground">

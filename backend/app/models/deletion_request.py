@@ -41,6 +41,7 @@ class DeletionRequest(Base):
     # Error tracking
     last_send_error = Column(Text, nullable=True)
     send_attempts = Column(Integer, default=0)
+    next_retry_at = Column(DateTime, nullable=True)
 
     # Notes
     notes = Column(Text, nullable=True)

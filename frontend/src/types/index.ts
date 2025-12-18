@@ -76,10 +76,11 @@ export interface DeletionRequest {
   sent_at: string | null
   confirmed_at: string | null
   rejected_at: string | null
-  gmail_sent_message_id?: string
-  gmail_thread_id?: string
-  last_send_error?: string
+  gmail_sent_message_id?: string | null
+  gmail_thread_id?: string | null
   send_attempts?: number
+  last_send_error?: string | null
+  next_retry_at?: string | null
   notes: string | null
   created_at: string
   updated_at: string
@@ -117,6 +118,25 @@ export interface TaskStatus {
     broker_emails_found: number
     status: string
   }
+}
+
+export interface WorkerHealth {
+  name: string
+  status: 'online' | 'offline'
+  active_tasks: number
+  queued_tasks: number
+  scheduled_tasks: number
+  total_tasks: number
+  concurrency?: number | null
+  uptime?: number | null
+}
+
+export interface TaskQueueHealth {
+  workers_online: number
+  total_active_tasks: number
+  total_queued_tasks: number
+  workers: WorkerHealth[]
+  last_updated: string
 }
 
 // Generated email for preview

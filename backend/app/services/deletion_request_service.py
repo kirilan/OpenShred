@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 from sqlalchemy.orm import Session
 
@@ -6,6 +6,9 @@ from app.models.user import User
 from app.models.data_broker import DataBroker
 from app.models.deletion_request import DeletionRequest, RequestStatus
 from app.utils.email_templates import EmailTemplates
+from app.exceptions import GmailQuotaExceededError
+from app.services.activity_log_service import ActivityLogService
+from app.models.activity_log import ActivityType
 
 
 class DeletionRequestService:
@@ -120,6 +123,13 @@ class DeletionRequestService:
         if request.status != RequestStatus.PENDING:
             raise Exception(f"Cannot send request with status: {request.status}")
 
+        if request.next_retry_at and request.next_retry_at > datetime.utcnow():
+            wait_seconds = int((request.next_retry_at - datetime.utcnow()).total_seconds())
+            minutes = max(1, wait_seconds // 60)
+            raise Exception(
+                f"Gmail rate limit in effect. Please retry in approximately {minutes} minute(s)."
+            )
+
         # Get user and broker
         user = self.db.query(User).filter(User.id == request.user_id).first()
         broker = self.db.query(DataBroker).filter(DataBroker.id == request.broker_id).first()
@@ -145,6 +155,7 @@ class DeletionRequestService:
             request.gmail_sent_message_id = result['message_id']
             request.gmail_thread_id = result.get('thread_id')
             request.last_send_error = None  # Clear any previous errors
+            request.next_retry_at = None
 
             self.db.commit()
             self.db.refresh(request)
@@ -156,6 +167,30 @@ class DeletionRequestService:
             request.last_send_error = str(e)
             self.db.commit()
             raise PermissionError("Insufficient permissions. Please re-authorize with gmail.send scope")
+        except GmailQuotaExceededError as e:
+            # Apply exponential backoff (capped at 60 minutes)
+            retry_base_seconds = e.retry_after or 60
+            multiplier = 2 ** min(request.send_attempts, 5)
+            delay_seconds = min(60 * 60, retry_base_seconds * multiplier)
+            request.next_retry_at = datetime.utcnow() + timedelta(seconds=delay_seconds)
+            request.last_send_error = f"Rate limited by Gmail. Next retry at {request.next_retry_at.isoformat()} UTC."
+            self.db.commit()
+
+            # Log for audit trail
+            try:
+                activity_service = ActivityLogService(self.db)
+                activity_service.log_activity(
+                    user_id=str(request.user_id),
+                    activity_type=ActivityType.WARNING,
+                    message=f"Gmail rate limit while sending request to {broker.name}",
+                    details=request.last_send_error,
+                    broker_id=str(request.broker_id),
+                    deletion_request_id=str(request.id)
+                )
+            except Exception:
+                pass
+
+            raise Exception("Gmail rate limit encountered. Please try again later.")
         except Exception as e:
             # Log the error but don't change status
             request.last_send_error = str(e)

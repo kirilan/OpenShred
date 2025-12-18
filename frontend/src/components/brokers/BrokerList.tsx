@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useBrokers, useSyncBrokers, useCreateBroker } from '@/hooks/useBrokers'
-import { useCreateRequest } from '@/hooks/useRequests'
+import { useCreateRequest, useRequests } from '@/hooks/useRequests'
 import { Broker } from '@/types'
 import {
   Database,
@@ -21,8 +21,10 @@ import {
 export function BrokerList() {
   const { data: brokers, isLoading, error } = useBrokers()
   const syncBrokers = useSyncBrokers()
+  const { data: requests } = useRequests()
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const existingRequestBrokerIds = new Set(requests?.map((request) => request.broker_id) || [])
 
   const handleSyncBrokers = async () => {
     setSyncMessage(null)
@@ -100,7 +102,11 @@ export function BrokerList() {
       {brokers && brokers.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {brokers.map((broker) => (
-            <BrokerCard key={broker.id} broker={broker} />
+            <BrokerCard
+              key={broker.id}
+              broker={broker}
+              existingRequestBrokerIds={existingRequestBrokerIds}
+            />
           ))}
         </div>
       ) : (
@@ -313,18 +319,33 @@ function CreateBrokerForm() {
   )
 }
 
-function BrokerCard({ broker }: { broker: Broker }) {
+function BrokerCard({
+  broker,
+  existingRequestBrokerIds,
+}: {
+  broker: Broker
+  existingRequestBrokerIds: Set<string>
+}) {
   const navigate = useNavigate()
   const createRequest = useCreateRequest()
   const [isCreating, setIsCreating] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const alreadyRequested = existingRequestBrokerIds.has(broker.id)
 
   const handleCreateRequest = async () => {
+    if (alreadyRequested) {
+      return
+    }
+
     setIsCreating(true)
+    setErrorMessage(null)
     try {
       await createRequest.mutateAsync(broker.id)
       navigate('/requests')
     } catch (error) {
       console.error('Failed to create request:', error)
+      const detail = (error as any)?.response?.data?.detail
+      setErrorMessage(detail || 'Failed to create deletion request. Please try again.')
     } finally {
       setIsCreating(false)
     }
@@ -336,6 +357,11 @@ function BrokerCard({ broker }: { broker: Broker }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle className="text-lg">{broker.name}</CardTitle>
+            {alreadyRequested && (
+              <Badge variant="secondary" className="mt-2 text-xs uppercase tracking-wide">
+                Request already created
+              </Badge>
+            )}
             {broker.category && (
               <Badge variant="outline" className="mt-2 text-xs uppercase tracking-wide">
                 {broker.category.replace('_', ' ')}
@@ -385,12 +411,18 @@ function BrokerCard({ broker }: { broker: Broker }) {
           <Button
             className="w-full"
             onClick={handleCreateRequest}
-            disabled={isCreating}
+            disabled={isCreating || alreadyRequested}
+            variant={alreadyRequested ? 'secondary' : 'default'}
           >
             {isCreating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Creating...
+              </>
+            ) : alreadyRequested ? (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Request already exists
               </>
             ) : (
               <>
@@ -399,6 +431,9 @@ function BrokerCard({ broker }: { broker: Broker }) {
               </>
             )}
           </Button>
+          {errorMessage && (
+            <p className="text-xs text-destructive mt-2">{errorMessage}</p>
+          )}
         </div>
       </CardContent>
     </Card>

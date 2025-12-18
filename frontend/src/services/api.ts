@@ -11,6 +11,7 @@ import type {
   TaskStatus,
   ScanRequest,
   BrokerResponse,
+  TaskQueueHealth,
 } from '@/types'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -142,6 +143,11 @@ export const tasksApi = {
 
   cancel: async (taskId: string) => {
     const response = await api.delete(`/tasks/${taskId}`)
+    return response.data
+  },
+
+  getHealth: async () => {
+    const response = await api.get<TaskQueueHealth>('/tasks/health')
     return response.data
   },
 }

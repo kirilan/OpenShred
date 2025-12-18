@@ -24,6 +24,11 @@ class DeletionRequest(BaseModel):
     confirmed_at: Optional[datetime] = None
     rejected_at: Optional[datetime] = None
     notes: Optional[str] = None
+    gmail_sent_message_id: Optional[str] = None
+    gmail_thread_id: Optional[str] = None
+    send_attempts: int
+    last_send_error: Optional[str] = None
+    next_retry_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

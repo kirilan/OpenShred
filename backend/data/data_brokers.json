@@ -6,6 +6,251 @@
       "privacy_email": "kirilan@abv.bg",
       "opt_out_url": "https://test-broker.com/optout",
       "category": "test"
+    },
+    {
+      "name": "Acxiom",
+      "domains": ["acxiom.com"],
+      "privacy_email": "privacy@acxiom.com",
+      "opt_out_url": "https://isapps.acxiom.com/optout/optout.aspx",
+      "category": "data_aggregator"
+    },
+    {
+      "name": "Spokeo",
+      "domains": ["spokeo.com"],
+      "privacy_email": "privacy@spokeo.com",
+      "opt_out_url": "https://www.spokeo.com/optout",
+      "category": "people_search"
+    },
+    {
+      "name": "Whitepages",
+      "domains": ["whitepages.com", "whitepages.plus"],
+      "privacy_email": "privacy@whitepages.com",
+      "opt_out_url": "https://www.whitepages.com/suppression-requests",
+      "category": "people_search"
+    },
+    {
+      "name": "BeenVerified",
+      "domains": ["beenverified.com"],
+      "privacy_email": "privacy@beenverified.com",
+      "opt_out_url": "https://www.beenverified.com/app/optout/search",
+      "category": "background_check"
+    },
+    {
+      "name": "Intelius",
+      "domains": ["intelius.com"],
+      "privacy_email": "privacy@intelius.com",
+      "opt_out_url": "https://www.intelius.com/optout",
+      "category": "people_search"
+    },
+    {
+      "name": "PeopleFinders",
+      "domains": ["peoplefinders.com"],
+      "privacy_email": "privacy@peoplefinders.com",
+      "opt_out_url": "https://www.peoplefinders.com/manage",
+      "category": "people_search"
+    },
+    {
+      "name": "TruthFinder",
+      "domains": ["truthfinder.com"],
+      "privacy_email": "privacy@truthfinder.com",
+      "opt_out_url": "https://www.truthfinder.com/opt-out/",
+      "category": "background_check"
+    },
+    {
+      "name": "Instant Checkmate",
+      "domains": ["instantcheckmate.com"],
+      "privacy_email": "privacy@instantcheckmate.com",
+      "opt_out_url": "https://www.instantcheckmate.com/opt-out/",
+      "category": "background_check"
+    },
+    {
+      "name": "MyLife",
+      "domains": ["mylife.com"],
+      "privacy_email": "privacy@mylife.com",
+      "opt_out_url": "https://www.mylife.com/privacy-policy",
+      "category": "people_search"
+    },
+    {
+      "name": "PeopleConnect",
+      "domains": ["peopleconnect.us"],
+      "privacy_email": "privacy@peopleconnect.us",
+      "opt_out_url": "https://peopleconnect.us/privacy",
+      "category": "people_search"
+    },
+    {
+      "name": "CheckPeople",
+      "domains": ["checkpeople.com"],
+      "privacy_email": "support@checkpeople.com",
+      "opt_out_url": "https://www.checkpeople.com/do-not-sell-info",
+      "category": "people_search"
+    },
+    {
+      "name": "USSearch",
+      "domains": ["ussearch.com"],
+      "privacy_email": "privacy@ussearch.com",
+      "opt_out_url": "https://www.ussearch.com/opt-out/submit/",
+      "category": "people_search"
+    },
+    {
+      "name": "Radaris",
+      "domains": ["radaris.com"],
+      "privacy_email": "privacy@radaris.com",
+      "opt_out_url": "https://radaris.com/page/how-to-remove",
+      "category": "people_search"
+    },
+    {
+      "name": "Epsilon",
+      "domains": ["epsilon.com", "epsilondata.com"],
+      "privacy_email": "privacy@epsilon.com",
+      "opt_out_url": "https://www.epsilon.com/privacy-policy",
+      "category": "data_aggregator"
+    },
+    {
+      "name": "Experian",
+      "domains": ["experian.com"],
+      "privacy_email": "privacy@experian.com",
+      "opt_out_url": "https://www.experian.com/privacy/opting_out_of_marketing_offers.html",
+      "category": "credit_bureau"
+    },
+    {
+      "name": "Equifax",
+      "domains": ["equifax.com"],
+      "privacy_email": "vtinquiries@equifax.com",
+      "opt_out_url": "https://www.optoutprescreen.com",
+      "category": "credit_bureau"
+    },
+    {
+      "name": "TransUnion",
+      "domains": ["transunion.com"],
+      "privacy_email": "privacy@transunion.com",
+      "opt_out_url": "https://service.transunion.com/dss/ccpa_optout.page",
+      "category": "credit_bureau"
+    },
+    {
+      "name": "Innovis",
+      "domains": ["innovis.com", "cbcinnovis.com"],
+      "privacy_email": "cbcservices@cbcinnovis.com",
+      "opt_out_url": "https://www.optoutprescreen.com",
+      "category": "credit_bureau"
+    },
+    {
+      "name": "LexisNexis Risk Solutions",
+      "domains": ["risk.lexisnexis.com"],
+      "privacy_email": "consumer.documents@lexisnexis.com",
+      "opt_out_url": "https://consumer.risk.lexisnexis.com/california",
+      "category": "background_check"
+    },
+    {
+      "name": "PeopleLooker",
+      "domains": ["peoplelooker.com"],
+      "privacy_email": "privacy@peoplelooker.com",
+      "opt_out_url": "https://www.beenverified.com/app/optout/search",
+      "category": "people_search"
+    },
+    {
+      "name": "PeopleSmart",
+      "domains": ["peoplesmart.com"],
+      "privacy_email": "privacy@peoplesmart.com",
+      "opt_out_url": "https://www.beenverified.com/app/optout/search",
+      "category": "people_search"
+    },
+    {
+      "name": "Nuwber",
+      "domains": ["nuwber.com"],
+      "privacy_email": "privacy@nuwber.com",
+      "opt_out_url": "https://nuwber.com/removal/link",
+      "category": "people_search"
+    },
+    {
+      "name": "FastPeopleSearch",
+      "domains": ["fastpeoplesearch.com"],
+      "privacy_email": "privacy@fastpeoplesearch.com",
+      "opt_out_url": "https://www.fastpeoplesearch.com/removal",
+      "category": "people_search"
+    },
+    {
+      "name": "FamilyTreeNow",
+      "domains": ["familytreenow.com"],
+      "privacy_email": "privacy@familytreenow.com",
+      "opt_out_url": "https://www.familytreenow.com/optout",
+      "category": "people_search"
+    },
+    {
+      "name": "ClustrMaps",
+      "domains": ["clustrmaps.com"],
+      "privacy_email": "privacy@clustrmaps.com",
+      "opt_out_url": "https://clustrmaps.com/bl/opt-out",
+      "category": "people_search"
+    },
+    {
+      "name": "SmartBackgroundChecks",
+      "domains": ["smartbackgroundchecks.com"],
+      "privacy_email": "privacy@smartbackgroundchecks.com",
+      "opt_out_url": "https://www.smartbackgroundchecks.com/optout",
+      "category": "background_check"
+    },
+    {
+      "name": "Advanced Background Checks",
+      "domains": ["advancedbackgroundchecks.com"],
+      "privacy_email": "support@advancedbackgroundchecks.com",
+      "opt_out_url": "https://www.advancedbackgroundchecks.com/removal",
+      "category": "background_check"
+    },
+    {
+      "name": "USPhoneBook",
+      "domains": ["usphonebook.com"],
+      "privacy_email": "privacy@usphonebook.com",
+      "opt_out_url": "https://www.usphonebook.com/opt-out",
+      "category": "people_search"
+    },
+    {
+      "name": "PeekYou",
+      "domains": ["peekyou.com"],
+      "privacy_email": "privacy@peekyou.com",
+      "opt_out_url": "https://www.peekyou.com/about/contact/ccpa_optout/do_not_sell/",
+      "category": "people_search"
+    },
+    {
+      "name": "Pipl",
+      "domains": ["pipl.com"],
+      "privacy_email": "privacy@pipl.com",
+      "opt_out_url": "https://www.pipl.com/privacy-policy",
+      "category": "people_search"
+    },
+    {
+      "name": "ZoomInfo",
+      "domains": ["zoominfo.com"],
+      "privacy_email": "privacy@zoominfo.com",
+      "opt_out_url": "https://www.zoominfo.com/update/remove",
+      "category": "data_aggregator"
+    },
+    {
+      "name": "Oracle Data Cloud (BlueKai)",
+      "domains": ["oracle.com", "bluekai.com"],
+      "privacy_email": "privacy_ww@oracle.com",
+      "opt_out_url": "https://www.oracle.com/legal/data-privacy-inquiry-form/",
+      "category": "data_aggregator"
+    },
+    {
+      "name": "CoreLogic",
+      "domains": ["corelogic.com"],
+      "privacy_email": "privacy@corelogic.com",
+      "opt_out_url": "https://www.corelogic.com/privacy-policy",
+      "category": "data_aggregator"
+    },
+    {
+      "name": "Clearview AI",
+      "domains": ["clearview.ai"],
+      "privacy_email": "privacy-requests@clearview.ai",
+      "opt_out_url": "https://clearview.ai/privacy-and-requests",
+      "category": "biometric"
+    },
+    {
+      "name": "Social Catfish",
+      "domains": ["socialcatfish.com"],
+      "privacy_email": "ccparequest@socialcatfish.com",
+      "opt_out_url": "https://socialcatfish.com/opt-out/?id=request_optout",
+      "category": "people_search"
     }
   ]
 }

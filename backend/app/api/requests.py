@@ -4,7 +4,7 @@ from typing import List
 
 from app.database import get_db
 from app.models.user import User
-from app.models.deletion_request import RequestStatus
+from app.models.deletion_request import RequestStatus, DeletionRequest as DeletionRequestModel
 from app.models.activity_log import ActivityType
 from app.schemas.request import (
     DeletionRequestCreate,
@@ -17,6 +17,28 @@ from app.services.broker_service import BrokerService
 from app.services.activity_log_service import ActivityLogService
 
 router = APIRouter()
+
+
+def serialize_request(req: DeletionRequestModel) -> DeletionRequest:
+    return DeletionRequest(
+        id=str(req.id),
+        user_id=str(req.user_id),
+        broker_id=str(req.broker_id),
+        status=req.status.value,
+        generated_email_subject=req.generated_email_subject,
+        generated_email_body=req.generated_email_body,
+        sent_at=req.sent_at,
+        confirmed_at=req.confirmed_at,
+        rejected_at=req.rejected_at,
+        notes=req.notes,
+        gmail_sent_message_id=req.gmail_sent_message_id,
+        gmail_thread_id=req.gmail_thread_id,
+        send_attempts=req.send_attempts,
+        last_send_error=req.last_send_error,
+        next_retry_at=req.next_retry_at,
+        created_at=req.created_at,
+        updated_at=req.updated_at
+    )
 
 
 @router.post("/", response_model=DeletionRequest)
@@ -54,20 +76,7 @@ def create_deletion_request(
             deletion_request_id=str(deletion_request.id)
         )
 
-        return DeletionRequest(
-            id=str(deletion_request.id),
-            user_id=str(deletion_request.user_id),
-            broker_id=str(deletion_request.broker_id),
-            status=deletion_request.status.value,
-            generated_email_subject=deletion_request.generated_email_subject,
-            generated_email_body=deletion_request.generated_email_body,
-            sent_at=deletion_request.sent_at,
-            confirmed_at=deletion_request.confirmed_at,
-            rejected_at=deletion_request.rejected_at,
-            notes=deletion_request.notes,
-            created_at=deletion_request.created_at,
-            updated_at=deletion_request.updated_at
-        )
+        return serialize_request(deletion_request)
 
     except Exception as e:
         # Log error
@@ -91,23 +100,7 @@ def list_deletion_requests(
     service = DeletionRequestService(db)
     requests = service.get_user_requests(user_id)
 
-    return [
-        DeletionRequest(
-            id=str(req.id),
-            user_id=str(req.user_id),
-            broker_id=str(req.broker_id),
-            status=req.status.value,
-            generated_email_subject=req.generated_email_subject,
-            generated_email_body=req.generated_email_body,
-            sent_at=req.sent_at,
-            confirmed_at=req.confirmed_at,
-            rejected_at=req.rejected_at,
-            notes=req.notes,
-            created_at=req.created_at,
-            updated_at=req.updated_at
-        )
-        for req in requests
-    ]
+    return [serialize_request(req) for req in requests]
 
 
 @router.get("/{request_id}", response_model=DeletionRequest)
@@ -123,20 +116,7 @@ def get_deletion_request(
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
 
-    return DeletionRequest(
-        id=str(req.id),
-        user_id=str(req.user_id),
-        broker_id=str(req.broker_id),
-        status=req.status.value,
-        generated_email_subject=req.generated_email_subject,
-        generated_email_body=req.generated_email_body,
-        sent_at=req.sent_at,
-        confirmed_at=req.confirmed_at,
-        rejected_at=req.rejected_at,
-        notes=req.notes,
-        created_at=req.created_at,
-        updated_at=req.updated_at
-    )
+    return serialize_request(req)
 
 
 @router.put("/{request_id}/status", response_model=DeletionRequest)
@@ -157,20 +137,7 @@ def update_request_status(
     try:
         req = service.update_request_status(request_id, status, update.notes)
 
-        return DeletionRequest(
-            id=str(req.id),
-            user_id=str(req.user_id),
-            broker_id=str(req.broker_id),
-            status=req.status.value,
-            generated_email_subject=req.generated_email_subject,
-            generated_email_body=req.generated_email_body,
-            sent_at=req.sent_at,
-            confirmed_at=req.confirmed_at,
-            rejected_at=req.rejected_at,
-            notes=req.notes,
-            created_at=req.created_at,
-            updated_at=req.updated_at
-        )
+        return serialize_request(req)
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -229,20 +196,7 @@ def send_deletion_request(
             deletion_request_id=request_id
         )
 
-        return DeletionRequest(
-            id=str(req.id),
-            user_id=str(req.user_id),
-            broker_id=str(req.broker_id),
-            status=req.status.value,
-            generated_email_subject=req.generated_email_subject,
-            generated_email_body=req.generated_email_body,
-            sent_at=req.sent_at,
-            confirmed_at=req.confirmed_at,
-            rejected_at=req.rejected_at,
-            notes=req.notes,
-            created_at=req.created_at,
-            updated_at=req.updated_at
-        )
+        return serialize_request(req)
 
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))

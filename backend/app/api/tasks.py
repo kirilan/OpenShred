@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from celery.result import AsyncResult
 from pydantic import BaseModel
 from typing import Optional, List
+from datetime import datetime
 
 from app.celery_app import celery_app
 from app.tasks.email_tasks import scan_inbox_task
@@ -31,6 +32,25 @@ class TaskStatusResponse(BaseModel):
     result: Optional[dict] = None
 
 
+class WorkerStatus(BaseModel):
+    name: str
+    status: str
+    active_tasks: int
+    queued_tasks: int
+    scheduled_tasks: int
+    total_tasks: int
+    concurrency: Optional[int] = None
+    uptime: Optional[int] = None
+
+
+class TaskQueueHealth(BaseModel):
+    workers_online: int
+    total_active_tasks: int
+    total_queued_tasks: int
+    workers: List[WorkerStatus]
+    last_updated: datetime
+
+
 @router.post("/scan", response_model=TaskResponse)
 def start_scan_task(user_id: str, request: ScanTaskRequest):
     """Start an async email scan task"""
@@ -40,6 +60,53 @@ def start_scan_task(user_id: str, request: ScanTaskRequest):
         max_emails=request.max_emails
     )
     return TaskResponse(task_id=task.id, status="started")
+
+
+@router.get("/health", response_model=TaskQueueHealth)
+def get_task_queue_health():
+    """Return basic Celery worker and queue stats"""
+    inspect = celery_app.control.inspect()
+    stats = inspect.stats() if inspect else None
+    active = inspect.active() if inspect else None
+    scheduled = inspect.scheduled() if inspect else None
+    reserved = inspect.reserved() if inspect else None
+    heartbeat = inspect.ping() if inspect else None
+
+    worker_names = set()
+    for data in (stats, active, scheduled, reserved):
+        if isinstance(data, dict):
+            worker_names.update(data.keys())
+
+    workers: List[WorkerStatus] = []
+    for name in sorted(worker_names):
+        worker_stats = stats.get(name, {}) if isinstance(stats, dict) else {}
+        pool_info = worker_stats.get('pool', {}) if isinstance(worker_stats.get('pool'), dict) else {}
+        total_info = worker_stats.get('total', {}) if isinstance(worker_stats.get('total'), dict) else {}
+
+        workers.append(
+            WorkerStatus(
+                name=name,
+                status="online" if heartbeat and name in heartbeat else "offline",
+                active_tasks=len(active.get(name, [])) if isinstance(active, dict) and active.get(name) else 0,
+                queued_tasks=len(reserved.get(name, [])) if isinstance(reserved, dict) and reserved.get(name) else 0,
+                scheduled_tasks=len(scheduled.get(name, [])) if isinstance(scheduled, dict) and scheduled.get(name) else 0,
+                total_tasks=total_info.get('tasks', 0) if isinstance(total_info, dict) else 0,
+                concurrency=pool_info.get('max-concurrency') if isinstance(pool_info, dict) else None,
+                uptime=worker_stats.get('uptime') if worker_stats else None
+            )
+        )
+
+    workers_online = sum(1 for worker in workers if worker.status == "online")
+    total_active = sum(worker.active_tasks for worker in workers)
+    total_queued = sum(worker.queued_tasks + worker.scheduled_tasks for worker in workers)
+
+    return TaskQueueHealth(
+        workers_online=workers_online,
+        total_active_tasks=total_active,
+        total_queued_tasks=total_queued,
+        workers=workers,
+        last_updated=datetime.utcnow()
+    )
 
 
 @router.get("/{task_id}", response_model=TaskStatusResponse)
