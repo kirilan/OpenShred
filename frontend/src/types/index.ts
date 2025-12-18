@@ -142,3 +142,28 @@ export interface BrokerResponse {
   processed_at: string | null
   created_at: string
 }
+
+// Activity Log types
+export type ActivityType =
+  | 'request_created'
+  | 'request_sent'
+  | 'response_received'
+  | 'response_scanned'
+  | 'email_scanned'
+  | 'broker_detected'
+  | 'error'
+  | 'warning'
+  | 'info'
+
+export interface Activity {
+  id: string
+  user_id: string
+  activity_type: ActivityType
+  message: string
+  details: string | null
+  broker_id: string | null
+  deletion_request_id: string | null
+  response_id: string | null
+  email_scan_id: string | null
+  created_at: string
+}

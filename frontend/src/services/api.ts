@@ -186,4 +186,21 @@ export const analyticsApi = {
   },
 }
 
+// Activities API
+export const activitiesApi = {
+  list: async (
+    userId: string,
+    brokerId?: string | null,
+    activityType?: string | null,
+    daysBack = 30
+  ) => {
+    const params = new URLSearchParams({ user_id: userId, days_back: String(daysBack) })
+    if (brokerId) params.append('broker_id', brokerId)
+    if (activityType) params.append('activity_type', activityType)
+
+    const response = await api.get(`/activities/?${params}`)
+    return response.data
+  }
+}
+
 export default api

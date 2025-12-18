@@ -5,8 +5,10 @@ from typing import List
 from app.database import get_db
 from app.models.user import User
 from app.models.email_scan import EmailScan as EmailScanModel
+from app.models.activity_log import ActivityType
 from app.schemas.email import ScanRequest, ScanResult, EmailScan
 from app.services.email_scanner import EmailScanner
+from app.services.activity_log_service import ActivityLogService
 
 router = APIRouter()
 
@@ -30,6 +32,7 @@ def scan_emails(
 
     # Scan inbox
     scanner = EmailScanner(db)
+    activity_service = ActivityLogService(db)
 
     try:
         scans = scanner.scan_inbox(
@@ -61,6 +64,26 @@ def scan_emails(
         # Count broker emails
         broker_emails = sum(1 for scan in scans if scan.is_broker_email)
 
+        # Log activity
+        activity_service.log_activity(
+            user_id=user_id,
+            activity_type=ActivityType.EMAIL_SCANNED,
+            message=f"Email scan completed: {len(scans)} emails scanned, {broker_emails} broker emails found",
+            details=f"Days back: {request.days_back}, Max emails: {request.max_emails}"
+        )
+
+        # Log each detected broker
+        for scan in scans:
+            if scan.is_broker_email and scan.broker_id:
+                activity_service.log_activity(
+                    user_id=user_id,
+                    activity_type=ActivityType.BROKER_DETECTED,
+                    message=f"Detected broker email from {scan.sender_email}",
+                    details=f"Subject: {scan.subject}, Confidence: {scan.confidence_score}",
+                    broker_id=str(scan.broker_id),
+                    email_scan_id=str(scan.id)
+                )
+
         return ScanResult(
             message="Inbox scan completed",
             total_scanned=len(scans),
@@ -69,6 +92,13 @@ def scan_emails(
         )
 
     except Exception as e:
+        # Log error
+        activity_service.log_activity(
+            user_id=user_id,
+            activity_type=ActivityType.ERROR,
+            message=f"Email scan failed",
+            details=str(e)
+        )
         raise HTTPException(status_code=500, detail=f"Scan failed: {str(e)}")
 
 

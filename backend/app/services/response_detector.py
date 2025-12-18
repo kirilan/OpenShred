@@ -12,12 +12,28 @@ class ResponseDetector:
 
     # Keyword patterns for each response type
     CONFIRMATION_KEYWORDS = [
+        # Direct deletion statements
         'deleted', 'removed', 'erasure complete', 'data erased',
         'successfully deleted', 'removed from our database',
         'removed from our system', 'no longer in our records',
         'deletion complete', 'account closed', 'account deleted',
         'unsubscribed', 'removed from our list', 'opt-out confirmed',
-        'request completed', 'successfully processed your request to delete'
+
+        # Request completion
+        'request completed', 'request has been completed',
+        'successfully processed your request to delete',
+        'processed your deletion request', 'deletion request has been processed',
+        'request has been processed', 'your request has been fulfilled',
+
+        # Confirmation statements
+        'confirm the deletion', 'confirm deletion', 'we confirm',
+        'deletion of your personal data', 'deletion of your data',
+        'your data has been deleted', 'your data has been removed',
+        'your information has been deleted', 'your information has been removed',
+
+        # Completed actions
+        'has been deleted', 'has been removed', 'have been deleted',
+        'have been removed', 'been successfully removed', 'been successfully deleted'
     ]
 
     REJECTION_KEYWORDS = [

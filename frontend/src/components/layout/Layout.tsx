@@ -14,7 +14,8 @@ import {
   MessageSquare,
   BarChart3,
   Sun,
-  Moon
+  Moon,
+  List
 } from 'lucide-react'
 
 const navItems = [
@@ -25,6 +26,7 @@ const navItems = [
   { href: '/requests', label: 'Deletion Requests', icon: FileText },
   { href: '/responses', label: 'Broker Responses', icon: MessageSquare },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/activity', label: 'Activity Log', icon: List },
 ]
 
 export function Layout() {

@@ -577,7 +577,7 @@ If you encounter issues:
 - [ ] Advanced filtering and search (by date, broker, status)
 - [ ] Sorting options for all list views
 - [ ] Pagination for large datasets
-- [ ] Dark mode theme
+- [✅] Dark mode theme
 - [ ] Keyboard shortcuts for common actions
 - [ ] Toast notifications for async operations
 

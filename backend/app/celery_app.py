@@ -17,6 +17,10 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     result_extended=True,
+
+    # Retry configuration for failed tasks
+    task_acks_late=True,  # Acknowledge tasks after completion, not before
+    task_reject_on_worker_lost=True,  # Re-queue tasks if worker crashes
 )
 
 # Celery Beat Schedule

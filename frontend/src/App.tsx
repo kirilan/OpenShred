@@ -10,6 +10,7 @@ import { BrokerList } from './components/brokers/BrokerList'
 import { RequestList } from './components/requests/RequestList'
 import { ResponseList } from './components/responses/ResponseList'
 import { AnalyticsDashboard } from './components/analytics/AnalyticsDashboard'
+import { ActivityLog } from './components/activity/ActivityLog'
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
             <Route path="/requests" element={<RequestList />} />
             <Route path="/responses" element={<ResponseList />} />
             <Route path="/analytics" element={<AnalyticsDashboard />} />
+            <Route path="/activity" element={<ActivityLog />} />
           </Route>
         </Route>
 

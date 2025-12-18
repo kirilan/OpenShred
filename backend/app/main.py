@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
-from app.api import auth, brokers, emails, requests, tasks, responses, analytics
+from app.api import auth, brokers, emails, requests, tasks, responses, analytics, activities
 
 app = FastAPI(
     title="Data Deletion Assistant API",
@@ -50,3 +50,4 @@ app.include_router(requests.router, prefix="/requests", tags=["Deletion Requests
 app.include_router(responses.router, prefix="/responses", tags=["Broker Responses"])
 app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 app.include_router(tasks.router, prefix="/tasks", tags=["Background Tasks"])
+app.include_router(activities.router, prefix="/activities", tags=["Activity Log"])
