@@ -5,12 +5,17 @@ from typing import List
 from app.database import get_db
 from app.services.broker_service import BrokerService
 from app.schemas.broker import Broker, BrokerSyncResult, BrokerCreate
+from app.models.user import User
+from app.dependencies.auth import get_current_user, require_admin
 
 router = APIRouter()
 
 
 @router.get("/", response_model=List[Broker])
-def list_brokers(db: Session = Depends(get_db)):
+def list_brokers(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """List all data brokers"""
     service = BrokerService(db)
     brokers = service.get_all_brokers()
@@ -31,7 +36,11 @@ def list_brokers(db: Session = Depends(get_db)):
 
 
 @router.get("/{broker_id}", response_model=Broker)
-def get_broker(broker_id: str, db: Session = Depends(get_db)):
+def get_broker(
+    broker_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Get a specific broker by ID"""
     service = BrokerService(db)
     broker = service.get_broker_by_id(broker_id)
@@ -52,7 +61,11 @@ def get_broker(broker_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=Broker, status_code=201)
-def create_broker(broker_data: BrokerCreate, db: Session = Depends(get_db)):
+def create_broker(
+    broker_data: BrokerCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
     """Create a new data broker"""
     service = BrokerService(db)
     try:
@@ -73,7 +86,10 @@ def create_broker(broker_data: BrokerCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/sync", response_model=BrokerSyncResult)
-def sync_brokers(db: Session = Depends(get_db)):
+def sync_brokers(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
     """Sync brokers from JSON file to database"""
     service = BrokerService(db)
 

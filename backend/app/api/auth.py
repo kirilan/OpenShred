@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from urllib.parse import urlencode
+
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -7,6 +9,10 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.auth import AuthStatus
 from app.services.gmail_service import GmailService
+from app.dependencies.auth import (
+    create_access_token,
+    get_current_user,
+)
 
 router = APIRouter()
 gmail_service = GmailService()
@@ -66,8 +72,23 @@ def oauth_callback(
         db.commit()
         db.refresh(user)
 
-        # Redirect to frontend callback with user data
-        callback_url = f"{settings.frontend_url}/oauth-callback?user_id={str(user.id)}&email={user.email}"
+        # Issue JWT token
+        token = create_access_token(
+            subject=str(user.id),
+            email=user.email,
+            is_admin=user.is_admin,
+            expires_delta_seconds=60 * 60 * 12,
+        )
+
+        params = urlencode(
+            {
+                "user_id": str(user.id),
+                "email": user.email,
+                "token": token,
+            }
+        )
+
+        callback_url = f"{settings.frontend_url}/oauth-callback?{params}"
         return RedirectResponse(url=callback_url)
 
     except Exception as e:
@@ -75,40 +96,20 @@ def oauth_callback(
 
 
 @router.get("/status", response_model=AuthStatus)
-def auth_status(user_id: str = None, db: Session = Depends(get_db)):
-    """Check authentication status for a user"""
-    if not user_id:
-        return AuthStatus(
-            is_authenticated=False,
-            user=None,
-            message="No user ID provided"
-        )
-
-    user = db.query(User).filter(User.id == user_id).first()
-
-    if not user:
-        return AuthStatus(
-            is_authenticated=False,
-            user=None,
-            message="User not found"
-        )
-
-    if not user.encrypted_access_token or not user.encrypted_refresh_token:
-        return AuthStatus(
-            is_authenticated=False,
-            user=None,
-            message="User not authenticated"
-        )
-
+def auth_status(current_user: User = Depends(get_current_user)):
+    """Validate authentication token and return user info"""
     from app.schemas.auth import User as UserSchema
+
     return AuthStatus(
         is_authenticated=True,
         user=UserSchema(
-            id=str(user.id),
-            email=user.email,
-            google_id=user.google_id,
-            created_at=user.created_at,
-            updated_at=user.updated_at
+            id=str(current_user.id),
+            email=current_user.email,
+            google_id=current_user.google_id,
+            created_at=current_user.created_at,
+            updated_at=current_user.updated_at,
+            is_admin=current_user.is_admin,
         ),
-        message="User is authenticated"
+        message="User is authenticated",
+        token=None,
     )

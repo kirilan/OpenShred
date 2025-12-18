@@ -9,20 +9,21 @@ from app.models.activity_log import ActivityType
 from app.schemas.email import ScanRequest, ScanResult, EmailScan
 from app.services.email_scanner import EmailScanner
 from app.services.activity_log_service import ActivityLogService
+from app.dependencies.auth import get_current_user
 
 router = APIRouter()
 
 
 @router.post("/scan", response_model=ScanResult)
 def scan_emails(
-    user_id: str,
     request: ScanRequest = ScanRequest(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Scan user's Gmail inbox for data broker emails"""
 
     # Get user
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == current_user.id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -66,7 +67,7 @@ def scan_emails(
 
         # Log activity
         activity_service.log_activity(
-            user_id=user_id,
+            user_id=str(user.id),
             activity_type=ActivityType.EMAIL_SCANNED,
             message=f"Email scan completed: {len(scans)} emails scanned, {broker_emails} broker emails found",
             details=f"Days back: {request.days_back}, Max emails: {request.max_emails}"
@@ -76,7 +77,7 @@ def scan_emails(
         for scan in scans:
             if scan.is_broker_email and scan.broker_id:
                 activity_service.log_activity(
-                    user_id=user_id,
+                    user_id=str(user.id),
                     activity_type=ActivityType.BROKER_DETECTED,
                     message=f"Detected broker email from {scan.sender_email}",
                     details=f"Subject: {scan.subject}, Confidence: {scan.confidence_score}",
@@ -94,7 +95,7 @@ def scan_emails(
     except Exception as e:
         # Log error
         activity_service.log_activity(
-            user_id=user_id,
+            user_id=str(user.id),
             activity_type=ActivityType.ERROR,
             message=f"Email scan failed",
             details=str(e)
@@ -104,14 +105,14 @@ def scan_emails(
 
 @router.get("/scans", response_model=List[EmailScan])
 def get_scans(
-    user_id: str,
     broker_only: bool = False,
     limit: int = 1000,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Get email scan results for a user"""
 
-    query = db.query(EmailScanModel).filter(EmailScanModel.user_id == user_id)
+    query = db.query(EmailScanModel).filter(EmailScanModel.user_id == current_user.id)
 
     if broker_only:
         query = query.filter(EmailScanModel.is_broker_email == True)

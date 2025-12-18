@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from '@/stores/authStore'
 import type {
   AuthStatus,
   Broker,
@@ -23,6 +24,15 @@ const api = axios.create({
   },
 })
 
+api.interceptors.request.use((config) => {
+  const { token } = useAuthStore.getState()
+  if (token) {
+    config.headers = config.headers || {}
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
 // Auth API
 export const authApi = {
   login: async () => {
@@ -37,8 +47,8 @@ export const authApi = {
     return response.data
   },
 
-  getStatus: async (userId: string) => {
-    const response = await api.get<AuthStatus>(`/auth/status?user_id=${userId}`)
+  getStatus: async () => {
+    const response = await api.get<AuthStatus>('/auth/status')
     return response.data
   },
 }

@@ -15,6 +15,7 @@ from app.schemas.request import (
 from app.services.deletion_request_service import DeletionRequestService
 from app.services.broker_service import BrokerService
 from app.services.activity_log_service import ActivityLogService
+from app.dependencies.auth import get_current_user
 
 router = APIRouter()
 
@@ -43,14 +44,14 @@ def serialize_request(req: DeletionRequestModel) -> DeletionRequest:
 
 @router.post("/", response_model=DeletionRequest)
 def create_deletion_request(
-    user_id: str,
     request: DeletionRequestCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Create a new deletion request"""
 
     # Get user
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == current_user.id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -69,7 +70,7 @@ def create_deletion_request(
 
         # Log activity
         activity_service.log_activity(
-            user_id=user_id,
+            user_id=str(user.id),
             activity_type=ActivityType.REQUEST_CREATED,
             message=f"Created deletion request for {broker.name}",
             broker_id=request.broker_id,
@@ -81,7 +82,7 @@ def create_deletion_request(
     except Exception as e:
         # Log error
         activity_service.log_activity(
-            user_id=user_id,
+            user_id=str(user.id),
             activity_type=ActivityType.ERROR,
             message=f"Failed to create deletion request for {broker.name}",
             details=str(e),
@@ -92,13 +93,13 @@ def create_deletion_request(
 
 @router.get("/", response_model=List[DeletionRequest])
 def list_deletion_requests(
-    user_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """List all deletion requests for a user"""
 
     service = DeletionRequestService(db)
-    requests = service.get_user_requests(user_id)
+    requests = service.get_user_requests(str(current_user.id))
 
     return [serialize_request(req) for req in requests]
 
@@ -106,7 +107,8 @@ def list_deletion_requests(
 @router.get("/{request_id}", response_model=DeletionRequest)
 def get_deletion_request(
     request_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Get a specific deletion request"""
 
@@ -116,6 +118,9 @@ def get_deletion_request(
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
 
+    if str(req.user_id) != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized to view this request")
+
     return serialize_request(req)
 
 
@@ -123,7 +128,8 @@ def get_deletion_request(
 def update_request_status(
     request_id: str,
     update: DeletionRequestUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Update the status of a deletion request"""
 
@@ -137,6 +143,9 @@ def update_request_status(
     try:
         req = service.update_request_status(request_id, status, update.notes)
 
+        if str(req.user_id) != str(current_user.id):
+            raise HTTPException(status_code=403, detail="Not authorized to modify this request")
+
         return serialize_request(req)
 
     except Exception as e:
@@ -146,7 +155,8 @@ def update_request_status(
 @router.get("/{request_id}/email-preview", response_model=EmailPreview)
 def preview_deletion_email(
     request_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Get email preview for a deletion request"""
 
@@ -155,6 +165,9 @@ def preview_deletion_email(
 
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
+
+    if str(req.user_id) != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized to view this request")
 
     # Get broker for additional info
     broker_service = BrokerService(db)
@@ -171,7 +184,8 @@ def preview_deletion_email(
 @router.post("/{request_id}/send", response_model=DeletionRequest)
 def send_deletion_request(
     request_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Send a deletion request email via Gmail"""
     from app.services.gmail_service import GmailService
@@ -181,6 +195,13 @@ def send_deletion_request(
     activity_service = ActivityLogService(db)
 
     try:
+        request_record = service.get_request_by_id(request_id)
+        if not request_record:
+            raise HTTPException(status_code=404, detail="Request not found")
+
+        if str(request_record.user_id) != str(current_user.id):
+            raise HTTPException(status_code=403, detail="Not authorized to send this request")
+
         req = service.send_request_email(request_id, gmail_service)
 
         # Get broker for logging

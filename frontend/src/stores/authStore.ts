@@ -5,10 +5,12 @@ import type { User } from '@/types'
 interface AuthState {
   userId: string | null
   user: User | null
+  token: string | null
   isAuthenticated: boolean
   isLoading: boolean
-  setUser: (userId: string, user: User) => void
-  setUserId: (userId: string) => void
+  setUser: (user: User) => void
+  setSession: (userId: string, token: string) => void
+  setToken: (token: string | null) => void
   clearAuth: () => void
   setLoading: (loading: boolean) => void
 }
@@ -18,27 +20,37 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       userId: null,
       user: null,
+      token: null,
       isAuthenticated: false,
       isLoading: true,
 
-      setUser: (userId: string, user: User) =>
+      setUser: (user: User) =>
         set({
-          userId,
+          userId: user.id,
           user,
           isAuthenticated: true,
           isLoading: false,
         }),
 
-      setUserId: (userId: string) =>
+      setSession: (userId: string, token: string) =>
         set({
           userId,
+          token,
+          isAuthenticated: true,
           isLoading: false,
+        }),
+
+      setToken: (token: string | null) =>
+        set({
+          token,
+          isAuthenticated: !!token,
         }),
 
       clearAuth: () =>
         set({
           userId: null,
           user: null,
+          token: null,
           isAuthenticated: false,
           isLoading: false,
         }),
@@ -50,7 +62,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ userId: state.userId }),
+      partialize: (state) => ({ userId: state.userId, token: state.token }),
     }
   )
 )

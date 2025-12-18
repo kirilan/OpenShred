@@ -6,15 +6,17 @@ from app.database import get_db
 from app.models.broker_response import BrokerResponse as BrokerResponseModel
 from app.schemas.response import BrokerResponse, ScanResponsesRequest
 from app.tasks.email_tasks import scan_for_responses_task
+from app.models.user import User
+from app.dependencies.auth import get_current_user, require_admin
 
 router = APIRouter()
 
 
 @router.get("/", response_model=List[BrokerResponse])
 def list_broker_responses(
-    user_id: str = Query(..., description="User ID"),
     request_id: Optional[str] = Query(None, description="Filter by deletion request ID"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     List broker responses for a user
@@ -22,7 +24,7 @@ def list_broker_responses(
     Optionally filter by deletion request ID
     """
     query = db.query(BrokerResponseModel).filter(
-        BrokerResponseModel.user_id == user_id
+        BrokerResponseModel.user_id == current_user.id
     )
 
     # Filter by request_id if provided
@@ -56,9 +58,9 @@ def list_broker_responses(
 
 @router.post("/scan")
 def scan_responses(
-    user_id: str = Query(..., description="User ID"),
     days_back: int = Query(7, description="Number of days to look back"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Manually trigger a scan for broker responses
@@ -67,7 +69,7 @@ def scan_responses(
     to deletion requests.
     """
     # Start background task
-    task = scan_for_responses_task.delay(user_id, days_back)
+    task = scan_for_responses_task.delay(str(current_user.id), days_back)
 
     return {
         "task_id": task.id,
@@ -79,7 +81,8 @@ def scan_responses(
 @router.get("/{response_id}", response_model=BrokerResponse)
 def get_broker_response(
     response_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Get a specific broker response by ID"""
     response = db.query(BrokerResponseModel).filter(
@@ -88,6 +91,9 @@ def get_broker_response(
 
     if not response:
         raise HTTPException(status_code=404, detail="Response not found")
+
+    if str(response.user_id) != str(current_user.id) and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized to view this response")
 
     return BrokerResponse(
         id=str(response.id),

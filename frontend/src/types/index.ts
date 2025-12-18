@@ -3,6 +3,7 @@ export interface User {
   id: string
   email: string
   google_id: string
+  is_admin: boolean
   last_scan_at?: string
   created_at: string
   updated_at: string
@@ -12,6 +13,7 @@ export interface AuthStatus {
   is_authenticated: boolean
   user: User | null
   message: string
+  token?: string | null
 }
 
 // Broker types

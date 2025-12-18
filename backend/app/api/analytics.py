@@ -1,17 +1,19 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Dict, Optional
 
 from app.database import get_db
 from app.services.analytics_service import AnalyticsService
+from app.models.user import User
+from app.dependencies.auth import get_current_user, require_admin
 
 router = APIRouter()
 
 
 @router.get("/stats")
 def get_user_stats(
-    user_id: str = Query(..., description="User ID"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Dict:
     """
     Get overall statistics for a user
@@ -19,13 +21,14 @@ def get_user_stats(
     Returns total requests, status breakdown, success rate, and average response time
     """
     service = AnalyticsService(db)
-    return service.get_user_stats(user_id)
+    return service.get_user_stats(str(current_user.id))
 
 
 @router.get("/broker-ranking")
 def get_broker_ranking(
-    user_id: Optional[str] = Query(None, description="User ID (optional, for user-specific ranking)"),
-    db: Session = Depends(get_db)
+    user_id: Optional[str] = Query(None, description="User ID (optional, admin can query other users)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> List[Dict]:
     """
     Get broker compliance ranking
@@ -33,15 +36,24 @@ def get_broker_ranking(
     Shows brokers sorted by success rate and response time.
     If user_id is provided, shows ranking based on that user's requests only.
     """
+    if user_id and user_id != str(current_user.id):
+        if not current_user.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin privileges required to view other users' analytics",
+            )
+    else:
+        user_id = str(current_user.id)
+
     service = AnalyticsService(db)
     return service.get_broker_compliance_ranking(user_id)
 
 
 @router.get("/timeline")
 def get_timeline(
-    user_id: str = Query(..., description="User ID"),
     days: int = Query(30, description="Number of days to look back"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> List[Dict]:
     """
     Get timeline data for requests sent and confirmations received
@@ -49,13 +61,13 @@ def get_timeline(
     Returns daily counts for the specified time period
     """
     service = AnalyticsService(db)
-    return service.get_timeline_data(user_id, days)
+    return service.get_timeline_data(str(current_user.id), days)
 
 
 @router.get("/response-distribution")
 def get_response_distribution(
-    user_id: str = Query(..., description="User ID"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> List[Dict]:
     """
     Get distribution of broker response types
@@ -63,4 +75,4 @@ def get_response_distribution(
     Shows count of each response type (confirmation, rejection, acknowledgment, etc.)
     """
     service = AnalyticsService(db)
-    return service.get_response_type_distribution(user_id)
+    return service.get_response_type_distribution(str(current_user.id))

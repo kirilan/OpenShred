@@ -67,6 +67,8 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 - One-click email sending via Gmail API
 - Track request status (pending, sent, confirmed, rejected)
 
+- Duplicate-request detection prevents accidental resends and surfaces friendly messaging in the UI
+
 ### 📊 **Response Tracking & Analytics**
 - Automatic detection of broker responses
 - Classify responses: confirmation, rejection, acknowledgment, info request
@@ -74,11 +76,15 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 - Success rate analytics and broker compliance ranking
 - Timeline charts showing request progress over time
 
+- Per-request history timeline (creation, sends, responses, and Gmail rate-limit notices) keeps context in one place
+
 ### 📈 **Interactive Dashboard**
 - Real-time overview of all deletion activities
 - Success rate metrics and confirmation tracking
 - Recent broker responses with type badges
 - Quick action shortcuts to key features
+
+- Admin-only task queue health widget exposes Celery worker status, queue depth, and refresh controls
 
 ### 🎯 **Advanced Analytics**
 - Visual charts with recharts library
@@ -86,6 +92,11 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 - Response type distribution pie charts
 - Timeline views (7/30/90 day ranges)
 - Average response time tracking
+
+### 👥 **Manual Broker Management**
+- Collapsible "Manual Broker Entry" form for quickly adding new brokers (name, domains, privacy email, opt-out URL, category)
+- Broker cards highlight whether a deletion request already exists and disable the CTA accordingly
+- Inline validation/error handling bubbled up from the backend
 
 ---
 
@@ -477,6 +488,7 @@ data-deletion-assistant/
 - Keep `.env` file out of version control (`.gitignore` included)
 - Use HTTPS in production (configure Nginx SSL)
 - Regularly update dependencies for security patches
+- Promote trusted accounts to admin by setting `is_admin = true` in the `users` table (for example via `UPDATE users SET is_admin=true WHERE email='you@example.com';`) and re-authenticating to mint a new JWT
 
 ---
 
@@ -561,93 +573,43 @@ If you encounter issues:
 
 ---
 
-## 🗺️ Roadmap
-
-### 🎯 Near-term Enhancements (v1.1)
-
-**Core Features**
-- [ ] Authorization document generation (proof of identity for deletion requests)
-- [ ] Custom email template editor for deletion requests
-- [ ] Bulk deletion request creation (select multiple brokers at once)
-- [ ] Email preview improvements with syntax highlighting
-- [ ] Request notes and attachment support
-- [ ] Manual response classification override
-
-**User Experience**
-- [ ] Advanced filtering and search (by date, broker, status)
-- [ ] Sorting options for all list views
-- [ ] Pagination for large datasets
-- [✅] Dark mode theme
-- [ ] Keyboard shortcuts for common actions
-- [ ] Toast notifications for async operations
-
-**Data & Reporting**
-- [ ] Export deletion history to CSV/JSON
-- [ ] Export analytics reports to PDF
-- [ ] Data backup and restore functionality
-- [ ] Request timeline visualization
-- [ ] Email activity heatmap
-
-### 🚀 Medium-term Features (v1.5)
-
-**Intelligence & Automation**
-- [ ] Machine learning-based email classification (replace keyword matching)
-- [ ] AI-powered broker detection from email content
-- [ ] Smart response parsing for unstructured replies
-- [ ] Automated follow-up reminders (7, 14, 30 day intervals)
-- [ ] Duplicate detection for broker emails
-- [ ] Suggested actions based on response patterns
-
-**Integrations**
-- [ ] Integration with other email providers (Outlook, Yahoo, ProtonMail)
-- [ ] Webhook notifications for status changes
-- [ ] Zapier/Make.com integration
-- [ ] Calendar integration for follow-up scheduling
-- [ ] Slack/Discord notifications
-
-**Multi-user & Collaboration**
-- [ ] Multi-user support with role-based access
-- [ ] Admin dashboard for instance management
-- [ ] Team workspaces for shared deletion campaigns
-- [ ] Activity logs and audit trails
-- [ ] User invitation system
-
-### 🌟 Long-term Vision (v2.0)
-
-**Platform Extensions**
-- [ ] Mobile app (React Native for iOS/Android)
-- [ ] Browser extension for quick deletion requests
-- [ ] Desktop app (Electron)
-- [ ] REST API with authentication for third-party integrations
-- [ ] GraphQL API option
-
-**Community & Data**
-- [ ] Community-contributed broker database
-- [ ] Crowdsourced response templates
-- [ ] Broker compliance leaderboard (public)
-- [ ] Share success stories anonymously
-- [ ] Data broker discovery from user submissions
-
-**Advanced Features**
-- [ ] Multi-language support (Spanish, French, German, Portuguese, Italian)
-- [ ] Regional compliance (GDPR, CCPA, PIPEDA, LGPD)
-- [ ] Automated identity verification with document upload
-- [ ] Legal template library (state-specific)
-- [ ] Request escalation workflow (from email → legal action)
-- [ ] Integration with legal services for complex cases
-
-**Technical Improvements**
-- [ ] Real-time updates with WebSockets
-- [ ] Advanced rate limiting and API throttling
-- [ ] Multi-tenant architecture
-- [ ] Horizontal scaling with Kubernetes
-- [ ] Comprehensive test suite (unit, integration, e2e)
-- [ ] Performance monitoring and alerting
-- [ ] Database query optimization
-- [ ] Redis caching for frequently accessed data
-
----
 
 **Made with ❤️ for privacy advocates everywhere**
 
 *Remember: Your data is yours. Exercise your rights.* 🛡️
+## Recent Updates:
+
+- 🔑 **JWT-powered Auth Guard** - Every API now requires bearer tokens minted after Google OAuth, with admin-only scopes
+- 🛡️ **Admin Flag Enforcement** - Per-user `is_admin` gate for Celery health, broker sync, and other privileged actions
+- 🖊️ **Manual Broker Entry** - UI + API support for adding brokers one at a time with validation
+- 📝 **Request Timeline & Rate Limits** - Visual history plus Gmail backoff messaging directly on each request card
+- 💻 **Task Queue Monitoring** - Dashboard tile (admin-only) summarizing Celery worker health and queue depth
+
+## 🧞️ Roadmap
+
+### Near-term (next sprint)
+- [ ] Ship backend rate limiting & abuse controls on scan/task endpoints
+- [ ] Admin management UI (promote/demote users without SQL)
+- [ ] Hide admin-only widgets (Celery health, broker sync) for non-admin accounts
+- [ ] Broker import/export tooling with CSV/JSON validation
+- [ ] Better dashboard error surfaces for expired tokens / 401s
+
+### Mid-term (v1.5)
+- [ ] Customizable email templates plus identity/attachment support
+- [ ] Manual response overrides and request notes
+- [ ] Dark mode plus advanced filtering/search across tables
+- [ ] Export deletion history & analytics (CSV/PDF)
+- [ ] Automated follow-up reminders with Slack/email notifications
+
+### Long-term (v2.0 vision)
+- [ ] Additional email providers (Outlook, Proton, Yahoo)
+- [ ] Mobile/desktop companions & browser extension
+- [ ] Multi-user workspaces with role-based access control
+- [ ] ML-assisted broker detection and response parsing
+- [ ] Community-driven broker database & public compliance leaderboard
+
+---
+
+**Made with ?? for privacy advocates everywhere**
+
+*Remember: Your data is yours. Exercise your rights.* 📧

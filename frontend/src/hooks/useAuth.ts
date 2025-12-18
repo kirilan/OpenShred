@@ -4,19 +4,22 @@ import { authApi } from '@/services/api'
 import { useEffect } from 'react'
 
 export function useAuthStatus() {
-  const { userId, setUser, clearAuth, setLoading } = useAuthStore()
+  const { token, setUser, clearAuth, setLoading, setToken } = useAuthStore()
 
   const query = useQuery({
-    queryKey: ['authStatus', userId],
-    queryFn: () => authApi.getStatus(userId!),
-    enabled: !!userId,
+    queryKey: ['authStatus', token],
+    queryFn: () => authApi.getStatus(),
+    enabled: !!token,
     retry: false,
   })
 
   useEffect(() => {
     if (query.data) {
       if (query.data.is_authenticated && query.data.user) {
-        setUser(userId!, query.data.user)
+        setUser(query.data.user)
+        if (query.data.token) {
+          setToken(query.data.token)
+        }
       } else {
         clearAuth()
       }
@@ -24,10 +27,10 @@ export function useAuthStatus() {
     if (query.isError) {
       clearAuth()
     }
-    if (!userId) {
+    if (!token) {
       setLoading(false)
     }
-  }, [query.data, query.isError, userId, setUser, clearAuth, setLoading])
+  }, [query.data, query.isError, token, setUser, clearAuth, setLoading, setToken])
 
   return query
 }

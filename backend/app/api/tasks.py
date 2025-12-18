@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from celery.result import AsyncResult
 from pydantic import BaseModel
 from typing import Optional, List
@@ -6,6 +6,8 @@ from datetime import datetime
 
 from app.celery_app import celery_app
 from app.tasks.email_tasks import scan_inbox_task
+from app.dependencies.auth import get_current_user, require_admin
+from app.models.user import User
 
 router = APIRouter()
 
@@ -52,10 +54,13 @@ class TaskQueueHealth(BaseModel):
 
 
 @router.post("/scan", response_model=TaskResponse)
-def start_scan_task(user_id: str, request: ScanTaskRequest):
+def start_scan_task(
+    request: ScanTaskRequest,
+    current_user: User = Depends(get_current_user),
+):
     """Start an async email scan task"""
     task = scan_inbox_task.delay(
-        user_id,
+        str(current_user.id),
         days_back=request.days_back,
         max_emails=request.max_emails
     )
@@ -63,7 +68,7 @@ def start_scan_task(user_id: str, request: ScanTaskRequest):
 
 
 @router.get("/health", response_model=TaskQueueHealth)
-def get_task_queue_health():
+def get_task_queue_health(current_user: User = Depends(require_admin)):
     """Return basic Celery worker and queue stats"""
     inspect = celery_app.control.inspect()
     stats = inspect.stats() if inspect else None
@@ -110,7 +115,7 @@ def get_task_queue_health():
 
 
 @router.get("/{task_id}", response_model=TaskStatusResponse)
-def get_task_status(task_id: str):
+def get_task_status(task_id: str, current_user: User = Depends(get_current_user)):
     """Get the status of a Celery task"""
     result = AsyncResult(task_id, app=celery_app)
 
@@ -130,7 +135,7 @@ def get_task_status(task_id: str):
 
 
 @router.delete("/{task_id}")
-def cancel_task(task_id: str):
+def cancel_task(task_id: str, current_user: User = Depends(get_current_user)):
     """Cancel/revoke a running task"""
     celery_app.control.revoke(task_id, terminate=True)
     return {"task_id": task_id, "status": "cancelled"}

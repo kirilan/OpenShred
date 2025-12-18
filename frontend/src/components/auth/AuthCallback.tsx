@@ -5,20 +5,21 @@ import { useAuthStore } from '@/stores/authStore'
 export function AuthCallback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { setUserId } = useAuthStore()
+  const { setSession } = useAuthStore()
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const handleCallback = () => {
       const userId = searchParams.get('user_id')
+      const token = searchParams.get('token')
 
-      if (!userId) {
-        setError('No user ID received')
+      if (!userId || !token) {
+        setError('Missing authentication data')
         return
       }
 
       try {
-        setUserId(userId)
+        setSession(userId, token)
         navigate('/', { replace: true })
       } catch (err) {
         console.error('Auth callback error:', err)
@@ -27,7 +28,7 @@ export function AuthCallback() {
     }
 
     handleCallback()
-  }, [searchParams, navigate, setUserId])
+  }, [searchParams, navigate, setSession])
 
   if (error) {
     return (
