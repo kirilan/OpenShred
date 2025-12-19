@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import settings
 from app.database import init_db
 from app.api import auth, brokers, emails, requests, tasks, responses, analytics, activities, admin
 
@@ -10,10 +11,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
+allowed_origins = ["*"]
+if settings.environment.lower() == "production":
+    allowed_origins = [settings.frontend_url.rstrip("/")]
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

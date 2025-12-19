@@ -97,6 +97,30 @@ services:
     depends_on:
       - backend
 
+  caddy:
+    image: caddy:2.7
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_HOSTNAME: ${APP_HOSTNAME:-app.localhost}
+      API_HOSTNAME: ${API_HOSTNAME:-api.localhost}
+      CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL:-devnull@example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+    profiles:
+      - production
+
 volumes:
   postgres_data:
   redis_data:
+  caddy_data:
+  caddy_config:

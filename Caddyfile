@@ -1,0 +1,13 @@
+{
+    email {$CADDY_ACME_EMAIL:devnull@example.com}
+}
+
+{$APP_HOSTNAME:app.localhost} {
+    encode gzip zstd
+    reverse_proxy frontend:80
+}
+
+{$API_HOSTNAME:api.localhost} {
+    encode gzip zstd
+    reverse_proxy backend:8000
+}

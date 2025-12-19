@@ -127,6 +127,7 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 - **Redis 7** - Cache and message broker
 - **Docker & Docker Compose** - Containerization
 - **Nginx** - Frontend web server
+- **Caddy** - Reverse proxy + automated TLS for production
 
 ---
 
@@ -233,9 +234,15 @@ REDIS_URL=redis://redis:6379/0
 SECRET_KEY=your-secret-key-here
 ENCRYPTION_KEY=your-encryption-key-here
 
-# Environment
+# Environment & URLs
 ENVIRONMENT=development
+FRONTEND_URL=http://localhost:3000
 VITE_API_URL=http://localhost:8000
+
+# Reverse proxy (only needed when ENVIRONMENT=production)
+APP_HOSTNAME=app.example.com
+API_HOSTNAME=api.example.com
+CADDY_ACME_EMAIL=admin@example.com
 ```
 
 **Generate Security Keys:**
@@ -268,6 +275,21 @@ This will start:
 - **Backend API**: http://localhost:8000
 - **API Docs**: http://localhost:8000/docs
 - **Health Check**: http://localhost:8000/health
+
+### 🌐 Production via Caddy Reverse Proxy
+
+When you are ready to expose the app publicly:
+
+1. Set `ENVIRONMENT=production`, update `FRONTEND_URL` to `https://<your app hostname>`, and set `VITE_API_URL` to `https://<your API hostname>` inside `.env`.
+2. Provide `APP_HOSTNAME`, `API_HOSTNAME`, and `CADDY_ACME_EMAIL` so the proxy knows which domains to serve and which email to use for ACME.
+3. Create DNS `A`/`AAAA` records for both hostnames pointing to the server that will run Docker.
+4. Build the production images and start the stack with the proxy enabled:
+   ```bash
+   docker compose --profile production up -d --build
+   ```
+5. Caddy (configured via `Caddyfile`) will terminate TLS on ports `80/443`, obtain certificates automatically, and forward traffic to the internal `frontend` and `backend` services while the FastAPI app locks CORS down to `FRONTEND_URL`.
+
+Switching `ENVIRONMENT` back to `development` lets you continue running entirely on `localhost` without the reverse proxy.
 
 ---
 
