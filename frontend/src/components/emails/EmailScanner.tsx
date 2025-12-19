@@ -23,14 +23,22 @@ export function EmailScanner() {
   useEffect(() => {
     if (!taskId) return
 
+    let isActive = true
+    let pollInterval: ReturnType<typeof setInterval> | null = null
+
     const pollStatus = async () => {
       try {
         const status = await tasksApi.getTaskStatus(taskId)
+        if (!isActive) return
+
         setTaskStatus(status)
 
-        // Stop polling if task is complete or failed
+        // Stop polling if task reached a terminal state
         if (status.state === 'SUCCESS' || status.state === 'FAILURE') {
-          return
+          if (pollInterval) {
+            clearInterval(pollInterval)
+            pollInterval = null
+          }
         }
       } catch (error) {
         console.error('Failed to fetch task status:', error)
@@ -41,9 +49,14 @@ export function EmailScanner() {
     pollStatus()
 
     // Then poll every 2 seconds
-    const interval = setInterval(pollStatus, 2000)
+    pollInterval = setInterval(pollStatus, 2000)
 
-    return () => clearInterval(interval)
+    return () => {
+      isActive = false
+      if (pollInterval) {
+        clearInterval(pollInterval)
+      }
+    }
   }, [taskId])
 
   const handleStartScan = async () => {
