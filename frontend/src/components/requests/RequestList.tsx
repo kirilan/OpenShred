@@ -6,7 +6,7 @@ import { useRequests, useCreateRequest } from '@/hooks/useRequests'
 import { useEmailScans } from '@/hooks/useEmails'
 import { useBrokers } from '@/hooks/useBrokers'
 import { useResponses } from '@/hooks/useResponses'
-import { DeletionRequest, EmailScan, BrokerResponse } from '@/types'
+import { DeletionRequest, EmailScan, BrokerResponse, BrokerResponseType } from '@/types'
 import { EmailPreviewDialog } from './EmailPreviewDialog'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -61,6 +61,16 @@ export function RequestList() {
 
     return grouped
   }, [responses])
+
+  const previewResponses = useMemo(() => {
+    if (!previewRequest || !responses) {
+      return []
+    }
+    return responses.filter((response) => (
+      response.deletion_request_id === previewRequest.id ||
+      (previewRequest.gmail_thread_id && response.gmail_thread_id === previewRequest.gmail_thread_id)
+    ))
+  }, [previewRequest, responses])
 
   const handleCreateRequest = async (brokerId: string) => {
     setCreatingFor(brokerId)
@@ -213,6 +223,7 @@ export function RequestList() {
       {/* Email Preview Dialog */}
       <EmailPreviewDialog
         request={previewRequest}
+        responses={previewResponses}
         onClose={() => setPreviewRequest(null)}
       />
 
@@ -267,6 +278,14 @@ interface TimelineEvent {
   onAction?: () => void
 }
 
+const responseTypeConfig: Record<BrokerResponseType, { label: string; color: string; bg: string }> = {
+  confirmation: { label: 'Confirmation', color: 'text-green-600', bg: 'bg-green-50' },
+  rejection: { label: 'Rejection', color: 'text-red-600', bg: 'bg-red-50' },
+  acknowledgment: { label: 'Acknowledged', color: 'text-blue-600', bg: 'bg-blue-50' },
+  request_info: { label: 'Info Requested', color: 'text-yellow-600', bg: 'bg-yellow-50' },
+  unknown: { label: 'Unknown', color: 'text-gray-600', bg: 'bg-gray-50' }
+}
+
 function RequestCard({
   request,
   brokerName,
@@ -283,13 +302,26 @@ function RequestCard({
   responses: BrokerResponse[]
 }) {
   const statusConfig = {
-    pending: { icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-    sent: { icon: Mail, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    confirmed: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/10' },
+    pending: { icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-500/10', label: 'Pending' },
+    sent: { icon: Mail, color: 'text-blue-500', bg: 'bg-blue-500/10', label: 'Sent' },
+    response_received: { icon: MessageSquare, color: 'text-cyan-600', bg: 'bg-cyan-500/10', label: 'Response received' },
+    confirmed: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/10', label: 'Confirmed' },
+    rejected: { icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-500/10', label: 'Rejected' },
   }
 
-  const config = statusConfig[request.status as keyof typeof statusConfig] || statusConfig.pending
+  const latestResponse = useMemo(() => {
+    if (responses.length === 0) return null
+    return responses.reduce((latest, current) => {
+      const latestDate = new Date(latest.received_date || latest.created_at).getTime()
+      const currentDate = new Date(current.received_date || current.created_at).getTime()
+      return currentDate > latestDate ? current : latest
+    })
+  }, [responses])
+  const hasResponse = Boolean(latestResponse)
+  const statusKey = hasResponse && request.status === 'sent' ? 'response_received' : request.status
+  const config = statusConfig[statusKey as keyof typeof statusConfig] || statusConfig.pending
   const StatusIcon = config.icon
+  const responseConfig = latestResponse ? responseTypeConfig[latestResponse.response_type] : null
 
   const [showTimeline, setShowTimeline] = useState(false)
   const nextRetryDate = request.next_retry_at ? new Date(request.next_retry_at) : null
@@ -417,8 +449,20 @@ function RequestCard({
             <div className="flex items-center gap-2">
               <Badge variant="outline" className={config.bg}>
                 <StatusIcon className={`h-3 w-3 mr-1 ${config.color}`} />
-                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                {config.label}
               </Badge>
+              {latestResponse && responseConfig && (
+                <>
+                  <Badge variant="outline" className={`${responseConfig.bg} ${responseConfig.color}`}>
+                    Response: {responseConfig.label}
+                  </Badge>
+                  {latestResponse.confidence_score !== null && (
+                    <Badge variant="secondary">
+                      {Math.round(latestResponse.confidence_score * 100)}% confidence
+                    </Badge>
+                  )}
+                </>
+              )}
             </div>
             <p className="text-sm font-medium">
               {brokerName}
@@ -427,6 +471,14 @@ function RequestCard({
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Calendar className="h-3 w-3" />
                 <span>Sent: {formatDate(request.sent_at)}</span>
+              </div>
+            )}
+            {latestResponse && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <MessageSquare className="h-3 w-3" />
+                <span>
+                  Response received: {formatDate(latestResponse.received_date || latestResponse.created_at) || 'Unknown'}
+                </span>
               </div>
             )}
             {!request.sent_at && (

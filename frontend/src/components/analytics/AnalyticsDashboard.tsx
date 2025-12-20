@@ -9,6 +9,7 @@ import {
   useResponseDistribution,
 } from '@/hooks/useAnalytics'
 import { useRequests } from '@/hooks/useRequests'
+import { useResponses } from '@/hooks/useResponses'
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import {
   TrendingUp,
@@ -21,6 +22,13 @@ import {
 } from 'lucide-react'
 
 const COLORS = ['#22c55e', '#ef4444', '#3b82f6', '#eab308', '#8b5cf6']
+const responseTypeLabels: Record<string, string> = {
+  confirmation: 'Confirmation',
+  rejection: 'Rejection',
+  acknowledgment: 'Acknowledged',
+  request_info: 'Info Requested',
+  unknown: 'Unknown',
+}
 
 export function AnalyticsDashboard() {
   const [timelineDays, setTimelineDays] = useState(30)
@@ -29,7 +37,36 @@ export function AnalyticsDashboard() {
   const { data: timeline, isLoading: timelineLoading } = useTimeline(timelineDays)
   const { data: distribution, isLoading: distributionLoading } = useResponseDistribution()
   const { data: requests } = useRequests()
+  const { data: responses } = useResponses()
   const requestBrokerIds = new Set(requests?.map((request) => request.broker_id) || [])
+  const responseRequestIds = new Set(
+    responses?.flatMap((response) => (response.deletion_request_id ? [response.deletion_request_id] : [])) || []
+  )
+  const responseReceivedCount = requests?.filter(
+    (request) => request.status === 'sent' && responseRequestIds.has(request.id)
+  ).length || 0
+  const sentAwaitingCount = requests?.filter(
+    (request) => request.status === 'sent' && !responseRequestIds.has(request.id)
+  ).length || 0
+  const pendingCount = requests?.filter((request) => request.status === 'pending').length || 0
+  const confirmedCount = requests?.filter((request) => request.status === 'confirmed').length || 0
+  const rejectedCount = requests?.filter((request) => request.status === 'rejected').length || 0
+  const latestResponse = responses?.reduce((latest, current) => {
+    if (!latest) return current
+    const latestDate = new Date(latest.received_date || latest.created_at).getTime()
+    const currentDate = new Date(current.received_date || current.created_at).getTime()
+    return currentDate > latestDate ? current : latest
+  }, responses?.[0] || null)
+  const latestConfidence = latestResponse?.confidence_score
+  const latestResponseLabel = latestResponse
+    ? responseTypeLabels[latestResponse.response_type] || latestResponse.response_type.replace('_', ' ')
+    : null
+  const latestResponseSummary = latestResponseLabel
+    ? `${latestResponseLabel}${latestConfidence !== null && latestConfidence !== undefined
+      ? ` · ${Math.round(latestConfidence * 100)}% confidence`
+      : ''
+    }`
+    : null
 
   if (statsLoading) {
     return (
@@ -78,6 +115,41 @@ export function AnalyticsDashboard() {
           />
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <div className="space-y-1">
+            <h3 className="text-lg font-semibold">Request Status Overview</h3>
+            <p className="text-sm text-muted-foreground">
+              Responses move requests from Sent to Response received.
+            </p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
+              Pending: {pendingCount}
+            </Badge>
+            <Badge variant="outline" className="bg-blue-50 text-blue-700">
+              Sent: {sentAwaitingCount}
+            </Badge>
+            <Badge variant="outline" className="bg-cyan-50 text-cyan-700">
+              Response received: {responseReceivedCount}
+            </Badge>
+            <Badge variant="outline" className="bg-green-50 text-green-700">
+              Confirmed: {confirmedCount}
+            </Badge>
+            <Badge variant="outline" className="bg-red-50 text-red-700">
+              Rejected: {rejectedCount}
+            </Badge>
+          </div>
+          {latestResponseSummary && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Latest response: {latestResponseSummary}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Timeline Chart */}
       <Card>

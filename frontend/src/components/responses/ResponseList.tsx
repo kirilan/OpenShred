@@ -235,7 +235,7 @@ function ResponseCard({ response }: { response: BrokerResponse }) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="space-y-2 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className={`${config.bg} ${config.color}`}>
@@ -272,42 +272,39 @@ function ResponseCard({ response }: { response: BrokerResponse }) {
               )}
             </div>
           </div>
+          <div className="flex flex-col gap-2 md:items-end">
+            <div className="space-y-1 text-right">
+              <p className="text-sm font-medium">Manual classification</p>
+              <p className="text-xs text-muted-foreground">
+                Confirmation/Rejection will update the linked request status.
+              </p>
+            </div>
+            <div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-end">
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value as BrokerResponseType)}
+                className="text-sm border rounded-md px-3 py-2 bg-background"
+              >
+                <option value="confirmation">Confirmation</option>
+                <option value="rejection">Rejection</option>
+                <option value="acknowledgment">Acknowledged</option>
+                <option value="request_info">Info Requested</option>
+                <option value="unknown">Unknown</option>
+              </select>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={classifyResponse.isPending}
+              >
+                {classifyResponse.isPending ? 'Saving...' : 'Save'}
+              </Button>
+              {saveMessage && (
+                <span className="text-xs text-muted-foreground">{saveMessage}</span>
+              )}
+            </div>
+          </div>
         </div>
       </CardHeader>
-
-      <CardContent className="pt-0 border-t">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Manual classification</p>
-            <p className="text-xs text-muted-foreground">
-              Confirmation/Rejection will update the linked request status.
-            </p>
-          </div>
-          <div className="flex flex-col md:flex-row gap-2 md:items-center">
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value as BrokerResponseType)}
-              className="text-sm border rounded-md px-3 py-2 bg-background"
-            >
-              <option value="confirmation">Confirmation</option>
-              <option value="rejection">Rejection</option>
-              <option value="acknowledgment">Acknowledged</option>
-              <option value="request_info">Info Requested</option>
-              <option value="unknown">Unknown</option>
-            </select>
-            <Button
-              size="sm"
-              onClick={handleSave}
-              disabled={classifyResponse.isPending}
-            >
-              {classifyResponse.isPending ? 'Saving...' : 'Save'}
-            </Button>
-            {saveMessage && (
-              <span className="text-xs text-muted-foreground">{saveMessage}</span>
-            )}
-          </div>
-        </div>
-      </CardContent>
 
       {response.body_text && (
         <CardContent className="pt-0">
