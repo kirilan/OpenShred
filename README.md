@@ -243,38 +243,58 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 ### Local Development (without Docker)
 
-The backend uses [uv](https://docs.astral.sh/uv/) for dependency management.
+You can use either **uv** (recommended) or **pip** for backend development.
+
+#### Using uv (Recommended)
 
 ```bash
-# Install uv (if not already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Linux/macOS
+# powershell -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
 
 # Install dependencies
 make install-dev
 
-# Start PostgreSQL and Redis (via Docker or locally)
+# Start PostgreSQL and Redis
 docker compose up -d db redis
 
-# Run backend
-make run-backend
+# Run backend (uv handles venv automatically)
+make run-backend      # or: cd backend && uv run uvicorn app.main:app --reload
 
-# In another terminal - run Celery worker
-make run-worker
-
-# Frontend
-cd frontend && npm install && npm run dev
+# Run tests
+make test             # or: cd backend && uv run pytest
 ```
+
+#### Using pip (Alternative)
+
+```bash
+# Create and activate virtual environment
+cd backend
+python -m venv .venv
+source .venv/bin/activate     # Linux/macOS
+# .venv\Scripts\activate      # Windows
+
+# Install dependencies
+pip install -r requirements-dev.txt
+
+# Run backend (venv must be activated)
+uvicorn app.main:app --reload
+
+# Run tests
+pytest
+```
+
+> **Detailed guide**: See [CONTRIBUTING.md](CONTRIBUTING.md) for the full backend development workflow, including dependency management and the comparison between uv and pip.
 
 ### Available Make Commands
 
 ```
-make help          Show all commands
-make dev           Start Docker environment
-make test          Run tests
-make lint          Run linter
-make format        Format code
-make migrate       Run database migrations
-make logs          View container logs
+make help              Show all commands
+make dev               Start Docker environment
+make test              Run tests
+make lint              Run linters via pre-commit
+make check             Run lint + test
+make sync-requirements Regenerate requirements.txt from pyproject.toml
 ```
 
 ---

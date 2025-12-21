@@ -131,11 +131,11 @@
 
 ## Development Workflow
 
-### Running the Application
+### Running the Application (Docker)
 
 | Command | Description |
 |---------|-------------|
-| `docker compose up -d` | Start all services |
+| `make dev` | Start all services |
 | `docker compose down` | Stop all services |
 | `docker compose logs -f` | View logs |
 | `docker compose logs -f backend` | View backend logs |
@@ -145,35 +145,105 @@
 - API Docs: http://localhost:8000/docs
 - Frontend: http://localhost:3000
 
-### Running Tests
+---
+
+## Backend Development
+
+You can choose between **uv** (recommended) or **pip** for Python package management.
+
+### Option 1: uv (Recommended)
+
+`uv` is a fast, modern Python package manager that handles virtual environments automatically.
 
 ```bash
-# Windows (PowerShell)
-cd backend
-uv run pytest
-uv run pytest --cov=app --cov-report=term-missing  # with coverage
+# Initial setup
+make setup                    # Creates .env, installs deps, sets up pre-commit
 
-# Linux/macOS
-make test
-make test-cov  # with coverage
+# Daily development
+cd backend
+uv run pytest                 # Run tests
+uv run uvicorn app.main:app --reload  # Start dev server
+uv run alembic upgrade head   # Run migrations
+
+# Or use Makefile shortcuts from project root
+make test                     # Run tests
+make run-backend              # Start backend
+make migrate                  # Run migrations
+
+# Adding dependencies
+cd backend
+uv add package-name           # Add to pyproject.toml and install
+uv add --dev package-name     # Add dev dependency
+make sync-requirements        # Regenerate requirements.txt for pip users
 ```
+
+**Key point**: `uv run` automatically uses the virtual environment in `backend/.venv` - no need to activate it manually.
+
+### Option 2: pip (Traditional)
+
+For users who prefer standard pip or can't install uv.
+
+```bash
+# Initial setup
+cd backend
+python -m venv .venv
+source .venv/bin/activate     # Linux/macOS
+# .venv\Scripts\activate      # Windows
+
+pip install -r requirements-dev.txt
+
+# Daily development (with venv activated)
+pytest                        # Run tests
+uvicorn app.main:app --reload # Start dev server
+alembic upgrade head          # Run migrations
+
+# Or use Makefile (after activating venv)
+make install-pip-dev          # Install deps via pip
+
+# Adding dependencies
+# 1. Edit pyproject.toml manually
+# 2. Run: make sync-requirements
+# 3. Run: pip install -r requirements-dev.txt
+```
+
+**Key point**: You must activate the virtual environment before running commands.
+
+### Comparison
+
+| Aspect | uv | pip |
+|--------|-----|-----|
+| Speed | ~10-100x faster | Standard |
+| Venv management | Automatic | Manual activation |
+| Lockfile | `uv.lock` (reproducible) | None by default |
+| Adding deps | `uv add pkg` | Edit pyproject.toml + sync |
+| Running commands | `uv run cmd` | Activate venv first |
+
+### Dependency Management
+
+**Source of truth**: `backend/pyproject.toml`
+
+The requirements files are auto-generated for pip compatibility:
+- `requirements.txt` - Production dependencies
+- `requirements-dev.txt` - Production + dev dependencies
+
+When you modify dependencies:
+1. Edit `pyproject.toml` (or use `uv add`)
+2. Run `make sync-requirements` to update requirements files
+3. Commit all three files
+
+---
 
 ### Code Quality
 
 ```bash
-# Windows (PowerShell)
-cd backend
-uv run ruff check app tests        # lint
-uv run ruff check --fix app tests  # lint with auto-fix
-uv run ruff format app tests       # format
-uv run mypy app                    # type check
-
-# Linux/macOS
+# Run all linters via pre-commit
 make lint
-make lint-fix
+
+# Format code
 make format
-make typecheck
-make check  # runs all checks
+
+# Run all checks (lint + test)
+make check
 ```
 
 ### Pre-commit Hooks
@@ -187,14 +257,14 @@ pre-commit run --all-files
 ### Database Migrations
 
 ```bash
-# Windows (PowerShell)
-cd backend
-uv run alembic upgrade head                    # apply migrations
-uv run alembic revision --autogenerate -m "description"  # create new
-
-# Linux/macOS
+# Apply migrations
 make migrate
+
+# Create new migration
 make migrate-new m="description"
+
+# View migration history
+cd backend && uv run alembic history
 ```
 
 ## Project Structure

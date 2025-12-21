@@ -1,4 +1,4 @@
-.PHONY: help setup install install-dev dev test lint format build up down logs clean migrate db-shell pre-commit
+.PHONY: help setup install install-dev install-pip dev test lint format build up down logs clean migrate db-shell pre-commit sync-requirements
 
 help:
 	@echo "Data Deletion Assistant - Development Commands"
@@ -15,6 +15,8 @@ help:
 	@echo "  make setup         Complete local setup (env, deps, pre-commit)"
 	@echo "  make install       Install backend dependencies (uv)"
 	@echo "  make install-dev   Install all local dependencies (backend + frontend)"
+	@echo "  make install-pip   Install backend via pip (alternative to uv)"
+	@echo "  make sync-requirements  Regenerate requirements.txt from pyproject.toml"
 	@echo ""
 	@echo "====== Local System Development ======"
 	@echo "  make run-backend   Run backend locally (requires local deps)"
@@ -67,6 +69,20 @@ pre-commit-install:
 	else \
 		echo "pre-commit not installed. Install with: pip install pre-commit"; \
 	fi
+
+# Alternative: install via pip instead of uv
+install-pip:
+	cd backend && pip install -r requirements.txt
+
+install-pip-dev:
+	cd backend && pip install -r requirements-dev.txt
+
+# Sync requirements.txt files from pyproject.toml (source of truth)
+sync-requirements:
+	@echo "Syncing requirements from pyproject.toml..."
+	@cd backend && uv pip compile pyproject.toml -o requirements.txt --quiet
+	@cd backend && uv pip compile pyproject.toml --extra dev -o requirements-dev.txt --quiet
+	@echo "Updated backend/requirements.txt and backend/requirements-dev.txt"
 
 # ============ Local System Development ============
 
