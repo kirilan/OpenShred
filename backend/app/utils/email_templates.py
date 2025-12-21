@@ -1,80 +1,145 @@
+import logging
+import re
 from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+# Template directory
+TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
+
+# Framework to template file mapping
+FRAMEWORK_TEMPLATES = {
+    "GDPR": "deletion_request_gdpr.txt",
+    "CCPA": "deletion_request_ccpa.txt",
+    "GDPR/CCPA": "deletion_request_combined.txt",
+}
+
+# Deadline days by framework
+FRAMEWORK_DEADLINES = {
+    "GDPR": 30,
+    "CCPA": 45,
+    "GDPR/CCPA": 30,
+}
 
 
 class EmailTemplates:
+    _template_cache: dict[str, str] = {}
+
+    @classmethod
+    def _load_template(cls, template_name: str) -> Optional[str]:
+        """Load a template file, with caching"""
+        if template_name in cls._template_cache:
+            return cls._template_cache[template_name]
+
+        template_path = TEMPLATE_DIR / template_name
+        if not template_path.exists():
+            logger.warning(f"Template not found: {template_path}")
+            return None
+
+        try:
+            content = template_path.read_text(encoding="utf-8")
+            cls._template_cache[template_name] = content
+            return content
+        except Exception as e:
+            logger.error(f"Failed to load template {template_name}: {e}")
+            return None
+
+    @classmethod
+    def clear_cache(cls) -> None:
+        """Clear the template cache (useful for testing or hot-reload)"""
+        cls._template_cache.clear()
+
     @staticmethod
+    def _render_template(template: str, context: dict) -> str:
+        """Simple template rendering using {{ variable }} syntax"""
+        result = template
+        for key, value in context.items():
+            result = result.replace(f"{{{{ {key} }}}}", str(value))
+        return result
+
+    @classmethod
     def generate_deletion_request_email(
+        cls,
         user_email: str,
         broker_name: str,
         framework: str = "GDPR/CCPA"
     ) -> tuple[str, str]:
         """
-        Generate deletion request email
+        Generate deletion request email from template
+
+        Args:
+            user_email: User's email address
+            broker_name: Name of the data broker
+            framework: Legal framework (GDPR, CCPA, or GDPR/CCPA)
 
         Returns:
             (subject, body)
         """
+        # Normalize framework
+        framework = framework.upper().strip()
+        if framework not in FRAMEWORK_TEMPLATES:
+            logger.warning(f"Unknown framework {framework}, defaulting to GDPR/CCPA")
+            framework = "GDPR/CCPA"
+
         subject = f"Data Deletion Request under {framework}"
 
-        # Calculate deadline (30 days from now)
-        deadline = (datetime.now() + timedelta(days=30)).strftime("%B %d, %Y")
+        # Calculate deadline
+        deadline_days = FRAMEWORK_DEADLINES.get(framework, 30)
+        deadline = (datetime.now() + timedelta(days=deadline_days)).strftime("%B %d, %Y")
 
-        if "GDPR" in framework:
-            legal_reference = """
-Under Article 17 of the General Data Protection Regulation (GDPR), I have the right to request the erasure of my personal data.
-"""
+        # Load and render template
+        template_file = FRAMEWORK_TEMPLATES[framework]
+        template = cls._load_template(template_file)
+
+        if template:
+            context = {
+                "user_email": user_email,
+                "broker_name": broker_name,
+                "deadline": deadline,
+            }
+            body = cls._render_template(template, context)
         else:
-            legal_reference = """
-Under the California Consumer Privacy Act (CCPA), I have the right to request the deletion of my personal information.
-"""
+            # Fallback to inline template if file not found
+            logger.warning(f"Using fallback template for {framework}")
+            body = cls._generate_fallback_body(user_email, broker_name, framework, deadline)
 
-        body = f"""Dear {broker_name} Privacy Team,
+        return subject, body
 
-I am writing to formally request the complete deletion of all my personal data from your systems and databases.
+    @staticmethod
+    def _generate_fallback_body(
+        user_email: str,
+        broker_name: str,
+        framework: str,
+        deadline: str
+    ) -> str:
+        """Generate fallback email body if template file is unavailable"""
+        if "GDPR" in framework:
+            legal_ref = "Under Article 17 of the GDPR, I have the right to request erasure of my personal data."
+        else:
+            legal_ref = "Under the CCPA, I have the right to request deletion of my personal information."
 
-{legal_reference.strip()}
+        return f"""Dear {broker_name} Privacy Team,
 
-Please delete all information associated with:
-- Email: {user_email}
-- Any other personal identifiers derived from the above
+I am formally requesting the complete deletion of all my personal data from your systems.
 
-This request includes, but is not limited to:
-- Contact information (email, phone, address)
-- Demographic information
-- Online identifiers
-- Any data obtained from third-party sources
-- All derived or inferred data
+{legal_ref}
 
-Please confirm receipt of this request within 5 business days and complete the deletion within 30 days as required by law. I expect confirmation once the deletion is complete.
+Please delete all information associated with: {user_email}
 
-If you require any additional information to process this request, please contact me at {user_email}.
-
-Please note that I do not consent to any further processing, sharing, or sale of my data, and I expect all third parties with whom you have shared my data to be notified of this deletion request.
-
-Deadline for completion: {deadline}
-
-Thank you for your prompt attention to this matter.
+Please confirm receipt within 5 business days and complete the deletion by {deadline}.
 
 Sincerely,
 {user_email}
 """
 
-        return subject, body
-
-    @staticmethod
-    def generate_gdpr_request(user_email: str, broker_name: str) -> tuple[str, str]:
+    @classmethod
+    def generate_gdpr_request(cls, user_email: str, broker_name: str) -> tuple[str, str]:
         """Generate GDPR-specific deletion request"""
-        return EmailTemplates.generate_deletion_request_email(
-            user_email,
-            broker_name,
-            framework="GDPR"
-        )
+        return cls.generate_deletion_request_email(user_email, broker_name, framework="GDPR")
 
-    @staticmethod
-    def generate_ccpa_request(user_email: str, broker_name: str) -> tuple[str, str]:
+    @classmethod
+    def generate_ccpa_request(cls, user_email: str, broker_name: str) -> tuple[str, str]:
         """Generate CCPA-specific deletion request"""
-        return EmailTemplates.generate_deletion_request_email(
-            user_email,
-            broker_name,
-            framework="CCPA"
-        )
+        return cls.generate_deletion_request_email(user_email, broker_name, framework="CCPA")

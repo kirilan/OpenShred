@@ -1,11 +1,8 @@
-# 🛡️ OpenShred
+# 🛡️ Data Deletion Assistant
 
-**YOUR OPEN-SOURCE DIGITAL SHREDDER.**
-**Automate GDPR/CCPA requests, purge your data from broker databases, and permanently reclaim your inbox.**
+**Automate your GDPR/CCPA data deletion requests and take back control of your personal information.**
 
 A comprehensive web application that scans your Gmail inbox for data broker communications, generates legally compliant deletion requests, and tracks broker responses—all with an intuitive dashboard and powerful analytics.
-
-![OpenShred demo](https://github.com/kirilan/OpenShred/blob/kirilan-asset/anti-spam.gif?raw=true)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
@@ -39,7 +36,6 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 ## 📋 Table of Contents
 
 - [Features](#-features)
-- [Hourly Response Scan Workflow](#-hourly-response-scan-workflow)
 - [Tech Stack](#-tech-stack)
 - [Architecture](#-architecture)
 - [Getting Started](#-getting-started)
@@ -64,8 +60,6 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 - Keyword-based email classification with confidence scoring
 - Domain matching against known broker databases
 - Customizable scan depth (days back, max emails)
-- Scan history log with pagination and totals
-- Email results live inside the Scan Emails page with broker-only toggle and pagination
 
 ### 📧 **Automated Deletion Requests**
 - Generate legally compliant GDPR/CCPA deletion request emails
@@ -78,12 +72,11 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 ### 📊 **Response Tracking & Analytics**
 - Automatic detection of broker responses
 - Classify responses: confirmation, rejection, acknowledgment, info request
-- Scheduled scans for new responses via Celery Beat (hourly during active development, configurable)
+- Daily automated scans for new responses (Celery Beat scheduling)
 - Success rate analytics and broker compliance ranking
 - Timeline charts showing request progress over time
 
 - Per-request history timeline (creation, sends, responses, and Gmail rate-limit notices) keeps context in one place
-- Unified Deletion Requests view with inline responses, match method, and manual reclassification
 
 ### 📈 **Interactive Dashboard**
 - Real-time overview of all deletion activities
@@ -92,12 +85,6 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 - Quick action shortcuts to key features
 
 - Admin-only task queue health widget exposes Celery worker status, queue depth, and refresh controls
-
-### 🤖 **AI Assist**
-- Per-user Gemini API key + model selection in Settings
-- AI Assist reclassifies all responses on a thread when invoked
-- Structured JSON output shown in-app and logged in the activity feed
-- Status updates only when model output is valid JSON with confidence ≥ 0.75
 
 ### 🎯 **Advanced Analytics**
 - Visual charts with recharts library
@@ -110,23 +97,6 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 - Collapsible "Manual Broker Entry" form for quickly adding new brokers (name, domains, privacy email, opt-out URL, category)
 - Broker cards highlight whether a deletion request already exists and disable the CTA accordingly
 - Inline validation/error handling bubbled up from the backend
-
----
-
-## ⏱️ Hourly Response Scan Workflow
-
-During active development, the response scan runs hourly via Celery Beat. This job rechecks Gmail for broker replies and updates request statuses.
-
-1. Celery Beat triggers `scan_all_users_for_responses` at the top of each hour (UTC).
-2. The task finds users with sent deletion requests and enqueues `scan_for_responses_task` per user.
-3. Each per-user task builds a Gmail query from broker domains and the oldest sent request date (or 7-day fallback).
-4. Gmail API searches the inbox and fetches up to 50 full messages matching that query.
-5. Existing responses are reclassified; new responses are created if the Gmail message ID is new.
-6. Responses are matched to deletion requests and can update status on high confidence (or thread match).
-7. Results are committed and logged as `response_scanned` with JSON details and `source="automated"`.
-8. The Scan History panel shows these runs alongside manual mailbox scans.
-
-To switch back to daily scheduling, adjust the Beat schedule in `backend/app/celery_app.py`.
 
 ---
 
@@ -157,7 +127,6 @@ To switch back to daily scheduling, adjust the Beat schedule in `backend/app/cel
 - **Redis 7** - Cache and message broker
 - **Docker & Docker Compose** - Containerization
 - **Nginx** - Frontend web server
-- **Caddy** - Reverse proxy + automated TLS for production
 
 ---
 
@@ -198,7 +167,7 @@ To switch back to daily scheduling, adjust the Beat schedule in `backend/app/cel
 2. **Scanning**: Celery worker scans inbox for broker emails
 3. **Request Creation**: User creates deletion requests from dashboard
 4. **Email Sending**: Automated emails sent via Gmail API
-5. **Response Tracking**: Scheduled Celery Beat task scans for broker responses
+5. **Response Tracking**: Daily Celery Beat task scans for broker responses
 6. **Analytics**: Real-time analytics computed from database
 
 ---
@@ -208,74 +177,55 @@ To switch back to daily scheduling, adjust the Beat schedule in `backend/app/cel
 ### Prerequisites
 
 - **Docker** and **Docker Compose** (recommended)
-  - OR **Python 3.11+**, **Node.js 20+**, **PostgreSQL 15**, **Redis 7**
+- OR for local development:
+  - **Python 3.11+** with [uv](https://docs.astral.sh/uv/) package manager
+  - **Node.js 20+**
+  - **PostgreSQL 15** and **Redis 7**
 - **Google Cloud Project** with Gmail API enabled
-- **Gmail Account** for testing
 
-### Installation
-
-#### 1. Clone the Repository
+### Quick Start (Docker)
 
 ```bash
-git clone https://github.com/kirilan/OpenShred.git
-cd OpenShred
+# Clone and configure
+git clone https://github.com/kirilan/anti-spam.git
+cd anti-spam
+cp .env.example .env
+# Edit .env with your credentials (see Configuration below)
+
+# Start everything
+make dev
 ```
 
-#### 2. Set Up Google OAuth Credentials
+Access the application:
+- **Frontend**: http://localhost:3000
+- **API Docs**: http://localhost:8000/docs
+
+### Configuration
+
+#### 1. Google OAuth Setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create a new project or select an existing one
-3. Enable the Gmail API:
-   - Navigate to **APIs & Services > Library**
-   - Search for **Gmail API** and click **Enable**
-4. Create OAuth 2.0 Credentials:
-   - Go to **APIs & Services > Credentials**
-   - Click **Create Credentials > OAuth client ID**
-   - Application type: **Web application**
-   - Name: `OpenShred`
-   - **Authorized redirect URIs**:
-     - `http://localhost:8000/auth/callback`
-     - `http://localhost:3000/oauth-callback`
-   - Click **Create** and copy the **Client ID** and **Client Secret**
+2. Create/select a project and enable the **Gmail API**
+3. Create OAuth 2.0 credentials (Web application):
+   - Redirect URI: `http://localhost:8000/auth/callback`
+4. Copy the **Client ID** and **Client Secret**
 
-#### 3. Configure Environment Variables
-
-Create a `.env` file in the project root:
+#### 2. Environment Variables
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and add your credentials:
+Required variables in `.env`:
 
 ```env
-# Google OAuth
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
-GOOGLE_REDIRECT_URI=http://localhost:8000/auth/callback
-
-# Database (Docker default)
-DATABASE_URL=postgresql://postgres:postgres@db:5432/antispam
-
-# Redis (Docker default)
-REDIS_URL=redis://redis:6379/0
-
-# Security Keys (generate these!)
-SECRET_KEY=your-secret-key-here
-ENCRYPTION_KEY=your-encryption-key-here
-
-# Environment & URLs
-ENVIRONMENT=development
-FRONTEND_URL=http://localhost:3000
-VITE_API_URL=http://localhost:8000
-
-# Reverse proxy (only needed when ENVIRONMENT=production)
-APP_HOSTNAME=app.example.com
-API_HOSTNAME=api.example.com
-CADDY_ACME_EMAIL=admin@example.com
+SECRET_KEY=<generate-with-command-below>
+ENCRYPTION_KEY=<generate-with-command-below>
 ```
 
-**Generate Security Keys:**
+Generate security keys:
 
 ```bash
 # SECRET_KEY
@@ -285,41 +235,41 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-#### 4. Start the Application
+### Local Development (without Docker)
+
+The backend uses [uv](https://docs.astral.sh/uv/) for dependency management.
 
 ```bash
-docker-compose up --build
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install dependencies
+make install-dev
+
+# Start PostgreSQL and Redis (via Docker or locally)
+docker compose up -d db redis
+
+# Run backend
+make run-backend
+
+# In another terminal - run Celery worker
+make run-worker
+
+# Frontend
+cd frontend && npm install && npm run dev
 ```
 
-This will start:
-- **PostgreSQL** on port `5432`
-- **Redis** on port `6379`
-- **FastAPI backend** on port `8000`
-- **Celery worker** for background tasks
-- **Celery beat** for scheduled tasks
-- **React frontend** on port `3000`
+### Available Make Commands
 
-#### 5. Access the Application
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
-
-### 🌐 Production via Caddy Reverse Proxy
-
-When you are ready to expose the app publicly:
-
-1. Set `ENVIRONMENT=production`, update `FRONTEND_URL` to `https://<your app hostname>`, and set `VITE_API_URL` to `https://<your API hostname>` inside `.env`.
-2. Provide `APP_HOSTNAME`, `API_HOSTNAME`, and `CADDY_ACME_EMAIL` so the proxy knows which domains to serve and which email to use for ACME.
-3. Create DNS `A`/`AAAA` records for both hostnames pointing to the server that will run Docker.
-4. Build the production images and start the stack with the proxy enabled:
-   ```bash
-   docker compose --profile production up -d --build
-   ```
-5. Caddy (configured via `Caddyfile`) will terminate TLS on ports `80/443`, obtain certificates automatically, and forward traffic to the internal `frontend` and `backend` services while the FastAPI app locks CORS down to `FRONTEND_URL`.
-
-Switching `ENVIRONMENT` back to `development` lets you continue running entirely on `localhost` without the reverse proxy.
+```
+make help          Show all commands
+make dev           Start Docker environment
+make test          Run tests
+make lint          Run linter
+make format        Format code
+make migrate       Run database migrations
+make logs          View container logs
+```
 
 ---
 
@@ -342,10 +292,10 @@ Switching `ENVIRONMENT` back to `development` lets you continue running entirely
 
 1. Go to **Scan Emails** page
 2. Configure scan parameters:
-   - **Days back**: How far to scan (default: 1 day)
+   - **Days back**: How far to scan (default: 90 days)
    - **Max emails**: Maximum emails to process (default: 100)
 3. Click **Start Scan**
-4. Review scan history and results in the same Scan Emails screen (broker-only by default)
+4. View results in **Email Results** page
 
 ### **4. Create Deletion Requests**
 
@@ -358,18 +308,16 @@ Switching `ENVIRONMENT` back to `development` lets you continue running entirely
 
 ### **5. Track Responses**
 
-1. Go to **Deletion Requests** page
+1. Go to **Broker Responses** page
 2. Click **Scan for Responses** to manually check for replies
-3. Review responses inline with each request and the match reason
-4. Use manual reclassification or AI Assist as needed
-5. View response types:
+3. View response types:
    - ✅ **Confirmation** - Deletion confirmed
    - ❌ **Rejection** - Request denied
    - ⏳ **Acknowledgment** - Request received, processing
    - ⚠️ **Info Request** - More information needed
    - ❓ **Unknown** - Unable to classify
-6. Filter by response type
-7. Scheduled response scans run hourly during development (configurable in Celery Beat)
+4. Filter by response type
+5. Daily automated scans run at 2 AM UTC
 
 ### **6. View Analytics**
 
@@ -385,27 +333,21 @@ Switching `ENVIRONMENT` back to `development` lets you continue running entirely
 
 ## 🛠️ Development
 
-### **Run Without Docker**
+### Backend (uv)
 
-#### Backend
+The backend uses [uv](https://docs.astral.sh/uv/) for fast, reliable dependency management.
 
 ```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+# Install dependencies
+make install-dev
+
+# Run locally (requires PostgreSQL + Redis)
+make run-backend    # API server
+make run-worker     # Celery worker
+make run-beat       # Celery beat scheduler
 ```
 
-Start Celery worker:
-```bash
-celery -A app.celery_app worker --loglevel=info
-```
-
-Start Celery beat:
-```bash
-celery -A app.celery_app beat --loglevel=info
-```
-
-#### Frontend
+### Frontend
 
 ```bash
 cd frontend
@@ -413,35 +355,36 @@ npm install
 npm run dev
 ```
 
-Frontend will be available at http://localhost:5173
+Frontend available at http://localhost:5173
 
-### **Database Migrations**
-
-Currently using `init_db()` which creates tables on startup. For production, use Alembic:
+### Database Migrations
 
 ```bash
-cd backend
-alembic init alembic
-alembic revision --autogenerate -m "Initial migration"
-alembic upgrade head
+# Run migrations
+make migrate
+
+# Create new migration
+make migrate-new m="Add new table"
+
+# View migration history
+make migrate-history
 ```
 
-### **Running Tests**
+### Testing & Code Quality
 
 ```bash
-# Backend tests
-cd backend
-pytest
-
-# Frontend tests
-cd frontend
-npm test
+make test          # Run tests
+make test-cov      # With coverage
+make lint          # Check code style
+make format        # Auto-format code
+make typecheck     # Type checking
+make check         # Run all checks
 ```
 
-### **Building for Production**
+### Building for Production
 
 ```bash
-docker-compose -f docker-compose.prod.yml up --build
+docker compose -f docker-compose.prod.yml up --build
 ```
 
 ---
@@ -449,75 +392,40 @@ docker-compose -f docker-compose.prod.yml up --build
 ## 📁 Project Structure
 
 ```
-OpenShred/
+anti-spam/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py                 # FastAPI application entry
-│   │   ├── config.py               # Settings & environment config
+│   │   ├── main.py                 # FastAPI application
+│   │   ├── config.py               # Settings & environment
 │   │   ├── database.py             # Database connection
 │   │   ├── celery_app.py           # Celery configuration
-│   │   ├── models/                 # SQLAlchemy ORM models
-│   │   │   ├── user.py
-│   │   │   ├── data_broker.py
-│   │   │   ├── email_scan.py
-│   │   │   ├── deletion_request.py
-│   │   │   └── broker_response.py
-│   │   ├── schemas/                # Pydantic schemas
-│   │   ├── services/               # Business logic layer
-│   │   │   ├── gmail_service.py          # Gmail API wrapper
-│   │   │   ├── email_scanner.py          # Inbox scanning
-│   │   │   ├── broker_detector.py        # Email classification
-│   │   │   ├── broker_service.py         # Broker CRUD
-│   │   │   ├── deletion_request_service.py
-│   │   │   ├── response_detector.py      # Response type detection
-│   │   │   ├── response_matcher.py       # Match responses to requests
-│   │   │   └── analytics_service.py      # Analytics calculations
+│   │   ├── logging_config.py       # Structured logging
+│   │   ├── models/                 # SQLAlchemy models
+│   │   ├── schemas/                # Pydantic schemas (with validation)
+│   │   ├── services/               # Business logic
+│   │   ├── api/                    # Route handlers
 │   │   ├── tasks/                  # Celery tasks
-│   │   │   └── email_tasks.py
-│   │   ├── api/                    # API route handlers
-│   │   │   ├── auth.py
-│   │   │   ├── brokers.py
-│   │   │   ├── emails.py
-│   │   │   ├── requests.py
-│   │   │   ├── responses.py
-│   │   │   └── analytics.py
+│   │   ├── templates/              # Email templates (GDPR/CCPA)
 │   │   └── utils/
-│   │       └── email_templates.py  # GDPR/CCPA email templates
+│   ├── tests/                      # pytest tests
+│   ├── alembic/                    # Database migrations
 │   ├── data/
-│   │   └── data_brokers.json       # Known data broker database
-│   ├── requirements.txt
+│   │   └── data_brokers.json       # Known brokers database
+│   ├── pyproject.toml              # uv/Python dependencies
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── auth/               # Authentication components
-│   │   │   ├── dashboard/          # Main dashboard
-│   │   │   ├── emails/             # Email scanner & list
-│   │   │   ├── brokers/            # Broker management
-│   │   │   ├── requests/           # Deletion requests
-│   │   │   ├── responses/          # Response tracking
-│   │   │   ├── analytics/          # Analytics dashboard
-│   │   │   ├── layout/             # Navigation & layout
-│   │   │   └── ui/                 # shadcn/ui components
-│   │   ├── hooks/                  # Custom React hooks
-│   │   │   ├── useAuth.ts
-│   │   │   ├── useEmails.ts
-│   │   │   ├── useBrokers.ts
-│   │   │   ├── useRequests.ts
-│   │   │   ├── useResponses.ts
-│   │   │   └── useAnalytics.ts
-│   │   ├── services/
-│   │   │   └── api.ts              # Axios API client
-│   │   ├── stores/
-│   │   │   └── authStore.ts        # Zustand auth store
-│   │   ├── types/                  # TypeScript type definitions
-│   │   ├── App.tsx
-│   │   └── main.tsx
+│   │   ├── components/             # React components
+│   │   ├── hooks/                  # Custom hooks
+│   │   ├── services/api.ts         # API client
+│   │   ├── stores/                 # Zustand stores
+│   │   ├── lib/utils.ts            # Utilities
+│   │   └── types/                  # TypeScript types
 │   ├── package.json
 │   └── Dockerfile
+├── Makefile                        # Development commands
 ├── docker-compose.yml
 ├── .env.example
-├── LICENSE
 └── README.md
 ```
 
@@ -596,35 +504,19 @@ If you encounter issues:
 
 - **Google OAuth Setup**: See [Google Cloud Documentation](https://cloud.google.com/docs/authentication)
 - **API Usage**: Check the interactive docs at http://localhost:8000/docs
-- **Bug Reports**: [Open an issue](https://github.com/kirilan/OpenShred/issues)
-- **Feature Requests**: [Start a discussion](https://github.com/kirilan/OpenShred/discussions)
+- **Bug Reports**: [Open an issue](https://github.com/yourusername/data-deletion-assistant/issues)
+- **Feature Requests**: [Start a discussion](https://github.com/yourusername/data-deletion-assistant/discussions)
 
 ---
 
 ## 📰 Recent Updates
-
-### v1.1.x - Current Development (December 2025)
-
-**Highlights**
-- AI Assist with per-user Gemini API key + model selection, structured JSON output dialog, and activity logging
-- Deletion Requests view now includes broker responses, match method, manual reclassification, and AI assist entry point
-- Scan Emails refresh: defaults (1 day/100 emails), paginated results + scan history with totals, broker-only toggle
-- Scan history includes manual and automated response scans
-- Settings page centralizes theme toggle and AI configuration
-
-**Security & Admin**
-- JWT auth guard on every API request with admin-only scopes
-- Per-user `is_admin` gate for privileged actions (Celery health, broker sync, etc.)
-- Manual broker entry UI with backend validation
-- Request timeline entries include Gmail rate-limit messaging
-- Admin task queue health widget for worker status and queue depth
 
 ### v1.0.0 - Current Release (December 2024)
 
 **✅ Completed Features**
 - ✨ **Response Tracking System** - Automatic broker response detection and classification
 - 📊 **Analytics Dashboard** - Success metrics, broker compliance ranking, timeline charts
-- 🤖 **Automated Scheduling** - Scheduled response scans via Celery Beat (hourly in dev; configurable)
+- 🤖 **Automated Scheduling** - Daily response scans at 2 AM UTC via Celery Beat
 - 📧 **Automated Email Sending** - One-click deletion request sending via Gmail API
 - 🎨 **Enhanced Dashboard** - Success rate metrics, recent responses, quick actions
 - 📈 **Interactive Charts** - Timeline visualizations with recharts library
@@ -642,6 +534,18 @@ If you encounter issues:
 - End-to-end encrypted token storage
 
 ---
+
+
+**Made with ❤️ for privacy advocates everywhere**
+
+*Remember: Your data is yours. Exercise your rights.* 🛡️
+## Recent Updates:
+
+- 🔑 **JWT-powered Auth Guard** - Every API now requires bearer tokens minted after Google OAuth, with admin-only scopes
+- 🛡️ **Admin Flag Enforcement** - Per-user `is_admin` gate for Celery health, broker sync, and other privileged actions
+- 🖊️ **Manual Broker Entry** - UI + API support for adding brokers one at a time with validation
+- 📝 **Request Timeline & Rate Limits** - Visual history plus Gmail backoff messaging directly on each request card
+- 💻 **Task Queue Monitoring** - Dashboard tile (admin-only) summarizing Celery worker health and queue depth
 
 ## 🧞️ Roadmap
 
@@ -668,6 +572,6 @@ If you encounter issues:
 
 ---
 
-Made with care for privacy advocates everywhere.
+**Made with ?? for privacy advocates everywhere**
 
-Remember: Your data is yours. Exercise your rights.
+*Remember: Your data is yours. Exercise your rights.* 📧

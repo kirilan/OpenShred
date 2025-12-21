@@ -1,34 +1,55 @@
-from fastapi import FastAPI
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
 from app.database import init_db
-from app.api import auth, brokers, emails, requests, tasks, responses, analytics, activities, admin, ai
+from app.api import auth, brokers, emails, requests, tasks, responses, analytics, activities
+from app.logging_config import setup_logging
+
+# Setup logging
+setup_logging()
+logger = logging.getLogger(__name__)
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler"""
+    logger.info("Starting Data Deletion Assistant API")
+    init_db()
+    logger.info("Database initialized")
+    yield
+    logger.info("Shutting down Data Deletion Assistant API")
+
 
 app = FastAPI(
     title="Data Deletion Assistant API",
     description="API for automating GDPR/CCPA data deletion requests",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
-allowed_origins = ["*"]
-if settings.environment.lower() == "production":
-    allowed_origins = [settings.frontend_url.rstrip("/")]
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS middleware
+# CORS middleware - use configured origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
-
-
-@app.on_event("startup")
-def startup_event():
-    """Initialize database on startup"""
-    init_db()
 
 
 @app.get("/")
@@ -56,5 +77,3 @@ app.include_router(responses.router, prefix="/responses", tags=["Broker Response
 app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 app.include_router(tasks.router, prefix="/tasks", tags=["Background Tasks"])
 app.include_router(activities.router, prefix="/activities", tags=["Activity Log"])
-app.include_router(admin.router, prefix="/admin", tags=["Admin"])
-app.include_router(ai.router, prefix="/ai", tags=["AI Settings"])
