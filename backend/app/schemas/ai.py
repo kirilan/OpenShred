@@ -1,19 +1,19 @@
 from datetime import datetime
-from typing import List, Optional, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
 
 class AiSettingsUpdate(BaseModel):
-    api_key: Optional[str] = Field(default=None)
-    model: Optional[str] = None
+    api_key: str | None = Field(default=None)
+    model: str | None = None
 
 
 class AiSettingsStatus(BaseModel):
     has_key: bool
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
     model: str
-    available_models: List[str] = Field(default_factory=list)
+    available_models: list[str] = Field(default_factory=list)
 
 
 class AiResponseClassification(BaseModel):
@@ -26,12 +26,12 @@ class AiResponseClassification(BaseModel):
         "unknown",
     ]
     confidence_score: float = Field(..., ge=0.0, le=1.0)
-    rationale: Optional[str] = None
+    rationale: str | None = None
 
 
 class AiThreadClassification(BaseModel):
     model: str
-    responses: List[AiResponseClassification]
+    responses: list[AiResponseClassification]
 
 
 class AiClassifyResult(BaseModel):

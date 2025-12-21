@@ -72,7 +72,7 @@ class DeletionRequest(BaseModel):
     next_retry_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
-    warning: Optional[str] = None
+    warning: str | None = None
 
     class Config:
         from_attributes = True

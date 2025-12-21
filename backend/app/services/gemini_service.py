@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, Dict
+from typing import Any
 
 import requests
 
@@ -17,7 +17,7 @@ class GeminiService:
         self.api_key = api_key
         self.model = model
 
-    def classify_thread(self, thread_payload: Dict[str, Any]) -> Dict[str, Any]:
+    def classify_thread(self, thread_payload: dict[str, Any]) -> dict[str, Any]:
         prompt = self._build_prompt(thread_payload)
         response = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
@@ -40,9 +40,7 @@ class GeminiService:
         )
 
         if not response.ok:
-            raise GeminiServiceError(
-                f"Gemini API error {response.status_code}: {response.text}"
-            )
+            raise GeminiServiceError(f"Gemini API error {response.status_code}: {response.text}")
 
         data = response.json()
         try:
@@ -52,7 +50,7 @@ class GeminiService:
 
         return self._extract_json(text)
 
-    def _build_prompt(self, thread_payload: Dict[str, Any]) -> str:
+    def _build_prompt(self, thread_payload: dict[str, Any]) -> str:
         schema = {
             "model": self.model,
             "responses": [
@@ -75,7 +73,7 @@ class GeminiService:
             "- Provide exactly one entry per input response_id.\n"
             "- Use response_type values only from the allowed list.\n"
             "- confidence_score must be a number between 0 and 1.\n"
-            f"- Set model to \"{self.model}\".\n\n"
+            f'- Set model to "{self.model}".\n\n'
             "Response type definitions:\n"
             "- confirmation: broker confirms data deletion or removal.\n"
             "- rejection: broker denies the request or says no data found.\n"
@@ -86,7 +84,7 @@ class GeminiService:
             f"{thread_json}\n"
         )
 
-    def _extract_json(self, text: str) -> Dict[str, Any]:
+    def _extract_json(self, text: str) -> dict[str, Any]:
         cleaned = text.strip()
         if cleaned.startswith("```"):
             cleaned = re.sub(r"^```(?:json)?", "", cleaned, flags=re.IGNORECASE).strip()
@@ -113,9 +111,7 @@ def list_gemini_models(api_key: str) -> list[str]:
         timeout=settings.gemini_timeout_seconds,
     )
     if not response.ok:
-        raise GeminiServiceError(
-            f"Gemini API error {response.status_code}: {response.text}"
-        )
+        raise GeminiServiceError(f"Gemini API error {response.status_code}: {response.text}")
 
     data = response.json()
     models = []

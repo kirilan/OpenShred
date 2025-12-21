@@ -1,17 +1,15 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies.auth import require_admin
 from app.models.user import User
-from app.schemas.user import UserSummary, UserRoleUpdate, TokenRevokeResponse
+from app.schemas.user import TokenRevokeResponse, UserRoleUpdate, UserSummary
 
 router = APIRouter()
 
 
-@router.get("/users", response_model=List[UserSummary])
+@router.get("/users", response_model=list[UserSummary])
 def list_users(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
