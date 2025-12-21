@@ -1,17 +1,17 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 
 from app.database import get_db
-from app.services.broker_service import BrokerService
-from app.schemas.broker import Broker, BrokerSyncResult, BrokerCreate
-from app.models.user import User
 from app.dependencies.auth import get_current_user, require_admin
+from app.models.user import User
+from app.schemas.broker import Broker, BrokerCreate, BrokerSyncResult
+from app.services.broker_service import BrokerService
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[Broker])
+@router.get("/", response_model=list[Broker])
 def list_brokers(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -98,7 +98,7 @@ def sync_brokers(
         total = len(service.get_all_brokers())
 
         return BrokerSyncResult(
-            message=f"Successfully synced brokers",
+            message="Successfully synced brokers",
             brokers_added=count,
             total_brokers=total
         )

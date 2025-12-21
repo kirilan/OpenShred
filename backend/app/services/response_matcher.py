@@ -2,13 +2,12 @@
 Response Matcher Service
 Matches broker email responses to deletion requests
 """
-from typing import Optional, Tuple
-from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
+from sqlalchemy.orm import Session
+
 from app.models.broker_response import BrokerResponse
-from app.models.deletion_request import DeletionRequest, RequestStatus
-from app.models.data_broker import DataBroker
+from app.models.deletion_request import DeletionRequest
 from app.services.broker_service import BrokerService
 
 
@@ -22,7 +21,7 @@ class ResponseMatcher:
     def match_response_to_request(
         self,
         response: BrokerResponse
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """
         Match a broker response to a deletion request
 
@@ -51,7 +50,7 @@ class ResponseMatcher:
 
         return (None, None)
 
-    def _match_by_thread_id(self, response: BrokerResponse) -> Optional[DeletionRequest]:
+    def _match_by_thread_id(self, response: BrokerResponse) -> DeletionRequest | None:
         """
         Match response by Gmail thread ID
 
@@ -71,7 +70,7 @@ class ResponseMatcher:
     def _match_by_subject_and_sender(
         self,
         response: BrokerResponse
-    ) -> Optional[DeletionRequest]:
+    ) -> DeletionRequest | None:
         """
         Match response by subject line keywords and sender domain
 
@@ -105,7 +104,7 @@ class ResponseMatcher:
             .filter(
                 DeletionRequest.user_id == response.user_id,
                 DeletionRequest.broker_id == broker.id,
-                DeletionRequest.status == RequestStatus.SENT,
+                DeletionRequest.status == 'sent',
                 DeletionRequest.sent_at >= cutoff_date
             )
             .order_by(DeletionRequest.sent_at.desc())
@@ -115,7 +114,7 @@ class ResponseMatcher:
     def _match_by_domain_and_time(
         self,
         response: BrokerResponse
-    ) -> Optional[DeletionRequest]:
+    ) -> DeletionRequest | None:
         """
         Match response by sender domain and time window
 
@@ -149,7 +148,7 @@ class ResponseMatcher:
             .filter(
                 DeletionRequest.user_id == response.user_id,
                 DeletionRequest.broker_id == broker.id,
-                DeletionRequest.status == RequestStatus.SENT,
+                DeletionRequest.status == 'sent',
                 DeletionRequest.sent_at >= cutoff_date,
                 ~DeletionRequest.id.in_(requests_with_responses)
             )
@@ -157,7 +156,7 @@ class ResponseMatcher:
             .first()
         )
 
-    def _extract_domain(self, email: str) -> Optional[str]:
+    def _extract_domain(self, email: str) -> str | None:
         """Extract domain from email address"""
         if not email or '@' not in email:
             return None

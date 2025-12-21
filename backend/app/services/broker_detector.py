@@ -1,6 +1,6 @@
-from typing import Dict, Tuple, Optional
-from bs4 import BeautifulSoup
 import re
+
+from bs4 import BeautifulSoup
 
 from app.models.data_broker import DataBroker
 
@@ -22,7 +22,7 @@ class BrokerDetector:
         body_html: str,
         body_text: str,
         all_brokers: list[DataBroker]
-    ) -> Tuple[Optional[DataBroker], float, str]:
+    ) -> tuple[DataBroker | None, float, str]:
         """
         Detect if email is from a data broker
 

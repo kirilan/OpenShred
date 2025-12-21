@@ -1,8 +1,6 @@
 import logging
-import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +26,7 @@ class EmailTemplates:
     _template_cache: dict[str, str] = {}
 
     @classmethod
-    def _load_template(cls, template_name: str) -> Optional[str]:
+    def _load_template(cls, template_name: str) -> str | None:
         """Load a template file, with caching"""
         if template_name in cls._template_cache:
             return cls._template_cache[template_name]

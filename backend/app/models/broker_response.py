@@ -1,9 +1,9 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Boolean, Float, Text, Enum
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+import enum
 import uuid
 from datetime import datetime
-import enum
+
+from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, String, Text, Uuid
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -21,11 +21,11 @@ class BrokerResponse(Base):
     """Model for tracking broker responses to deletion requests"""
     __tablename__ = "broker_responses"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
 
     # Foreign keys
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False, index=True)
-    deletion_request_id = Column(UUID(as_uuid=True), ForeignKey('deletion_requests.id'), nullable=True, index=True)
+    user_id = Column(Uuid, ForeignKey('users.id'), nullable=False, index=True)
+    deletion_request_id = Column(Uuid, ForeignKey('deletion_requests.id'), nullable=True, index=True)
 
     # Gmail metadata
     gmail_message_id = Column(String, nullable=False, unique=True, index=True)

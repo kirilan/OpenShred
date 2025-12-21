@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from typing import List, Dict, Optional
 
 from app.database import get_db
-from app.services.analytics_service import AnalyticsService
+from app.dependencies.auth import get_current_user
 from app.models.user import User
-from app.dependencies.auth import get_current_user, require_admin
+from app.services.analytics_service import AnalyticsService
 
 router = APIRouter()
 
@@ -14,7 +14,7 @@ router = APIRouter()
 def get_user_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> Dict:
+) -> dict:
     """
     Get overall statistics for a user
 
@@ -26,10 +26,10 @@ def get_user_stats(
 
 @router.get("/broker-ranking")
 def get_broker_ranking(
-    user_id: Optional[str] = Query(None, description="User ID (optional, admin can query other users)"),
+    user_id: str | None = Query(None, description="User ID (optional, admin can query other users)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> List[Dict]:
+) -> list[dict]:
     """
     Get broker compliance ranking
 
@@ -54,7 +54,7 @@ def get_timeline(
     days: int = Query(30, description="Number of days to look back"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> List[Dict]:
+) -> list[dict]:
     """
     Get timeline data for requests sent and confirmations received
 
@@ -68,7 +68,7 @@ def get_timeline(
 def get_response_distribution(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> List[Dict]:
+) -> list[dict]:
     """
     Get distribution of broker response types
 

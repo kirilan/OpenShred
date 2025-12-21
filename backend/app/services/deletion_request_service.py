@@ -1,14 +1,14 @@
 from datetime import datetime, timedelta
-from typing import List
+
 from sqlalchemy.orm import Session
 
-from app.models.user import User
+from app.exceptions import GmailQuotaExceededError
+from app.models.activity_log import ActivityType
 from app.models.data_broker import DataBroker
 from app.models.deletion_request import DeletionRequest, RequestStatus
-from app.utils.email_templates import EmailTemplates
-from app.exceptions import GmailQuotaExceededError
+from app.models.user import User
 from app.services.activity_log_service import ActivityLogService
-from app.models.activity_log import ActivityType
+from app.utils.email_templates import EmailTemplates
 
 
 class DeletionRequestService:
@@ -75,7 +75,7 @@ class DeletionRequestService:
 
         return request, warning
 
-    def get_user_requests(self, user_id: str) -> List[DeletionRequest]:
+    def get_user_requests(self, user_id: str) -> list[DeletionRequest]:
         """Get all deletion requests for a user"""
         return self.db.query(DeletionRequest).filter(
             DeletionRequest.user_id == user_id

@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field, field_validator
-from datetime import datetime
-from typing import Optional, Annotated
 import re
+from datetime import datetime
+from typing import Annotated
+
+from pydantic import BaseModel, Field, field_validator
 
 # Valid frameworks for deletion requests
 VALID_FRAMEWORKS = ["GDPR", "CCPA", "GDPR/CCPA"]
@@ -34,7 +35,7 @@ class DeletionRequestCreate(BaseModel):
 
 class DeletionRequestUpdate(BaseModel):
     status: Annotated[str, Field(min_length=1, max_length=20)]
-    notes: Optional[str] = Field(None, max_length=1000)
+    notes: str | None = Field(None, max_length=1000)
 
     @field_validator("status")
     @classmethod
@@ -46,7 +47,7 @@ class DeletionRequestUpdate(BaseModel):
 
     @field_validator("notes")
     @classmethod
-    def validate_notes(cls, v: Optional[str]) -> Optional[str]:
+    def validate_notes(cls, v: str | None) -> str | None:
         if v is None:
             return v
         v = v.strip()
@@ -58,17 +59,17 @@ class DeletionRequest(BaseModel):
     user_id: str
     broker_id: str
     status: str
-    generated_email_subject: Optional[str] = None
-    generated_email_body: Optional[str] = None
-    sent_at: Optional[datetime] = None
-    confirmed_at: Optional[datetime] = None
-    rejected_at: Optional[datetime] = None
-    notes: Optional[str] = None
-    gmail_sent_message_id: Optional[str] = None
-    gmail_thread_id: Optional[str] = None
+    generated_email_subject: str | None = None
+    generated_email_body: str | None = None
+    sent_at: datetime | None = None
+    confirmed_at: datetime | None = None
+    rejected_at: datetime | None = None
+    notes: str | None = None
+    gmail_sent_message_id: str | None = None
+    gmail_thread_id: str | None = None
     send_attempts: int
-    last_send_error: Optional[str] = None
-    next_retry_at: Optional[datetime] = None
+    last_send_error: str | None = None
+    next_retry_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
     warning: Optional[str] = None
@@ -80,5 +81,5 @@ class DeletionRequest(BaseModel):
 class EmailPreview(BaseModel):
     subject: str
     body: str
-    to_email: Optional[str] = None
+    to_email: str | None = None
     broker_name: str

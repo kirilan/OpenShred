@@ -1,8 +1,6 @@
 """Tests for broker API endpoints"""
 
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
 from app.models.data_broker import DataBroker
 

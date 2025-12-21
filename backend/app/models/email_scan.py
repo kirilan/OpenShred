@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Float, Text, ForeignKey, Boolean
-from sqlalchemy.dialects.postgresql import UUID
+
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, String, Text, Uuid
 
 from app.database import Base
 
@@ -9,11 +9,11 @@ from app.database import Base
 class EmailScan(Base):
     __tablename__ = "email_scans"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
 
     # Foreign keys
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    broker_id = Column(UUID(as_uuid=True), ForeignKey("data_brokers.id"), nullable=True, index=True)
+    user_id = Column(Uuid, ForeignKey("users.id"), nullable=False, index=True)
+    broker_id = Column(Uuid, ForeignKey("data_brokers.id"), nullable=True, index=True)
 
     # Gmail details
     gmail_message_id = Column(String, nullable=False, unique=True, index=True)

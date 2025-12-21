@@ -2,14 +2,14 @@
 Analytics Service
 Provides statistical analysis and insights about deletion requests and broker responses
 """
-from sqlalchemy.orm import Session
-from sqlalchemy import func, case, extract
-from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 
-from app.models.deletion_request import DeletionRequest, RequestStatus
-from app.models.broker_response import BrokerResponse, ResponseType
+from sqlalchemy import case, func
+from sqlalchemy.orm import Session
+
+from app.models.broker_response import BrokerResponse
 from app.models.data_broker import DataBroker
+from app.models.deletion_request import DeletionRequest, RequestStatus
 
 
 class AnalyticsService:
@@ -18,7 +18,7 @@ class AnalyticsService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_user_stats(self, user_id: str) -> Dict:
+    def get_user_stats(self, user_id: str) -> dict:
         """
         Get overall statistics for a user
 
@@ -87,7 +87,7 @@ class AnalyticsService:
 
         return stats
 
-    def get_broker_compliance_ranking(self, user_id: Optional[str] = None) -> List[Dict]:
+    def get_broker_compliance_ranking(self, user_id: str | None = None) -> list[dict]:
         """
         Get broker compliance ranking
 
@@ -170,7 +170,7 @@ class AnalyticsService:
 
         return rankings
 
-    def get_timeline_data(self, user_id: str, days: int = 30) -> List[Dict]:
+    def get_timeline_data(self, user_id: str, days: int = 30) -> list[dict]:
         """
         Get timeline data for requests sent and confirmations received
 
@@ -240,7 +240,7 @@ class AnalyticsService:
 
         return result
 
-    def get_response_type_distribution(self, user_id: str) -> List[Dict]:
+    def get_response_type_distribution(self, user_id: str) -> list[dict]:
         """
         Get distribution of response types
 

@@ -1,6 +1,7 @@
 import json
 import os
-from typing import List
+import uuid
+
 from sqlalchemy.orm import Session
 
 from app.models.data_broker import DataBroker
@@ -19,7 +20,7 @@ class BrokerService:
             'data_brokers.json'
         )
 
-        with open(json_path, 'r') as f:
+        with open(json_path) as f:
             data = json.load(f)
 
         count = 0
@@ -50,7 +51,7 @@ class BrokerService:
         self.db.commit()
         return count
 
-    def get_all_brokers(self) -> List[DataBroker]:
+    def get_all_brokers(self) -> list[DataBroker]:
         """Get all data brokers"""
         return self.db.query(DataBroker).order_by(DataBroker.name).all()
 
@@ -64,9 +65,17 @@ class BrokerService:
 
         return None
 
-    def get_broker_by_id(self, broker_id: str) -> DataBroker:
+    def get_broker_by_id(self, broker_id: str) -> DataBroker | None:
         """Get broker by ID"""
-        return self.db.query(DataBroker).filter(DataBroker.id == broker_id).first()
+        try:
+            broker_uuid = uuid.UUID(broker_id) if isinstance(broker_id, str) else broker_id
+        except ValueError:
+            return None
+        return self.db.query(DataBroker).filter(DataBroker.id == broker_uuid).first()
+
+    def find_broker_by_domain(self, domain: str) -> DataBroker | None:
+        """Alias for get_broker_by_domain for backwards compatibility"""
+        return self.get_broker_by_domain(domain)
 
     def create_broker(self, broker_data: BrokerCreate) -> DataBroker:
         """Create a new broker record"""

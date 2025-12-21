@@ -1,16 +1,15 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
+from app.api import activities, analytics, auth, brokers, emails, requests, responses, tasks
 from app.config import settings
 from app.database import init_db
-from app.api import auth, brokers, emails, requests, tasks, responses, analytics, activities
 from app.logging_config import setup_logging
 
 # Setup logging

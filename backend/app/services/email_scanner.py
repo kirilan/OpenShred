@@ -1,13 +1,13 @@
-from datetime import datetime, timedelta
-from typing import List, Dict
-from sqlalchemy.orm import Session
 import base64
+from datetime import datetime, timedelta
 
-from app.models.user import User
+from sqlalchemy.orm import Session
+
 from app.models.email_scan import EmailScan
-from app.services.gmail_service import GmailService
-from app.services.broker_service import BrokerService
+from app.models.user import User
 from app.services.broker_detector import BrokerDetector
+from app.services.broker_service import BrokerService
+from app.services.gmail_service import GmailService
 
 
 class EmailScanner:
@@ -22,7 +22,7 @@ class EmailScanner:
         user: User,
         days_back: int = 1,
         max_emails: int = 100
-    ) -> List[EmailScan]:
+    ) -> list[EmailScan]:
         """Scan user's Gmail inbox for data broker emails"""
 
         # Get all known brokers
@@ -128,7 +128,7 @@ class EmailScanner:
             return match.group(0)
         return from_header
 
-    def _extract_body(self, message: Dict) -> tuple[str, str]:
+    def _extract_body(self, message: dict) -> tuple[str, str]:
         """Extract HTML and text body from Gmail message"""
         body_html = ""
         body_text = ""
@@ -177,5 +177,5 @@ class EmailScanner:
         from email.utils import parsedate_to_datetime
         try:
             return parsedate_to_datetime(date_str)
-        except:
+        except Exception:
             return datetime.now()

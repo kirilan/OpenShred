@@ -6,13 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.models.user import User
-from app.schemas.auth import AuthStatus
-from app.services.gmail_service import GmailService
 from app.dependencies.auth import (
     create_access_token,
     get_current_user,
 )
+from app.models.user import User
+from app.schemas.auth import AuthStatus
+from app.services.gmail_service import GmailService
 
 router = APIRouter()
 gmail_service = GmailService()

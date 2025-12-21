@@ -1,6 +1,5 @@
 import logging
 import sys
-from typing import Optional
 
 from app.config import settings
 
@@ -24,7 +23,7 @@ class ColoredFormatter(logging.Formatter):
         return super().format(record)
 
 
-def setup_logging(log_level: Optional[str] = None) -> None:
+def setup_logging(log_level: str | None = None) -> None:
     """Configure application logging"""
     level = getattr(logging, (log_level or settings.log_level).upper(), logging.INFO)
 

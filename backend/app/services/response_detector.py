@@ -3,7 +3,7 @@ Response Detector Service
 Classifies broker email responses based on keyword matching
 """
 import re
-from typing import Tuple, Optional
+
 from app.models.broker_response import ResponseType
 
 
@@ -77,9 +77,9 @@ class ResponseDetector:
 
     def detect_response_type(
         self,
-        subject: Optional[str],
-        body: Optional[str]
-    ) -> Tuple[ResponseType, float]:
+        subject: str | None,
+        body: str | None
+    ) -> tuple[ResponseType, float]:
         """
         Detect the type of response based on subject and body content
 
@@ -145,7 +145,7 @@ class ResponseDetector:
 
         return bool(pattern.search(text))
 
-    def extract_case_number(self, text: str) -> Optional[str]:
+    def extract_case_number(self, text: str) -> str | None:
         """
         Extract case/ticket/reference number from text
 

@@ -1,6 +1,5 @@
 """Tests for email template generation"""
 
-import pytest
 from app.utils.email_templates import EmailTemplates
 
 

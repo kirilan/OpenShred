@@ -1,11 +1,10 @@
 import os
-import pytest
-from typing import Generator
-from unittest.mock import MagicMock
+from collections.abc import Generator
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 # Set test environment variables before importing app modules
@@ -19,9 +18,8 @@ os.environ.setdefault("ENVIRONMENT", "test")
 
 from app.database import Base, get_db
 from app.main import app
-from app.models.user import User
 from app.models.data_broker import DataBroker
-
+from app.models.user import User
 
 # Test database engine (SQLite in-memory)
 TEST_DATABASE_URL = "sqlite:///:memory:"

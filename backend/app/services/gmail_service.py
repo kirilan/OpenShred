@@ -1,9 +1,10 @@
+import os
+
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from google.oauth2.credentials import Credentials
-from typing import Optional, List, Dict
-import os
+
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 
 from app.config import settings
@@ -45,7 +46,7 @@ class GmailService:
 
         return authorization_url, state
 
-    def exchange_code_for_tokens(self, code: str, state: Optional[str] = None) -> Dict[str, str]:
+    def exchange_code_for_tokens(self, code: str, state: str | None = None) -> dict[str, str]:
         """Exchange authorization code for access and refresh tokens"""
         flow = Flow.from_client_config(
             self.client_config,
@@ -82,7 +83,7 @@ class GmailService:
 
         return credentials
 
-    def get_user_info(self, credentials: Credentials) -> Dict[str, str]:
+    def get_user_info(self, credentials: Credentials) -> dict[str, str]:
         """Get user info from Google"""
         from googleapiclient.discovery import build
         service = build('oauth2', 'v2', credentials=credentials)
@@ -94,7 +95,7 @@ class GmailService:
         user: User,
         query: str = '',
         max_results: int = 100
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """List Gmail messages for a user"""
         credentials = self.get_credentials(user)
         service = build('gmail', 'v1', credentials=credentials)
@@ -107,7 +108,7 @@ class GmailService:
 
         return results.get('messages', [])
 
-    def get_message(self, user: User, message_id: str) -> Dict:
+    def get_message(self, user: User, message_id: str) -> dict:
         """Get a specific Gmail message"""
         credentials = self.get_credentials(user)
         service = build('gmail', 'v1', credentials=credentials)
@@ -120,7 +121,7 @@ class GmailService:
 
         return message
 
-    def get_message_headers(self, message: Dict) -> Dict[str, str]:
+    def get_message_headers(self, message: dict) -> dict[str, str]:
         """Extract headers from a Gmail message"""
         headers = {}
         if 'payload' in message and 'headers' in message['payload']:
@@ -133,7 +134,7 @@ class GmailService:
         user: User,
         query: str,
         max_results: int = 50
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Search for Gmail messages and fetch their full content
 
@@ -167,13 +168,13 @@ class GmailService:
                     format='full'
                 ).execute()
                 messages.append(full_message)
-            except Exception as e:
+            except Exception:
                 # Skip messages that can't be fetched
                 continue
 
         return messages
 
-    def _extract_body(self, payload: Dict) -> str:
+    def _extract_body(self, payload: dict) -> str:
         """
         Extract plain text body from Gmail message payload
 
@@ -226,8 +227,8 @@ class GmailService:
         to_email: str,
         subject: str,
         body: str,
-        reply_to: Optional[str] = None
-    ) -> Dict[str, str]:
+        reply_to: str | None = None
+    ) -> dict[str, str]:
         """
         Send email via Gmail API
 
@@ -254,8 +255,8 @@ class GmailService:
         service = build('gmail', 'v1', credentials=credentials)
 
         # Create MIME message
-        from email.mime.text import MIMEText
         import base64
+        from email.mime.text import MIMEText
 
         message = MIMEText(body, 'plain')
         message['To'] = to_email

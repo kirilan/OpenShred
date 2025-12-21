@@ -1,7 +1,8 @@
 import re
-from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
-from typing import List, Optional, Annotated
+from typing import Annotated
+
+from pydantic import BaseModel, Field, field_validator
 
 # Valid broker categories
 VALID_CATEGORIES = [
@@ -16,10 +17,10 @@ VALID_CATEGORIES = [
 
 class BrokerBase(BaseModel):
     name: Annotated[str, Field(min_length=1, max_length=255)]
-    domains: Annotated[List[str], Field(min_length=1, max_length=50)]
-    privacy_email: Optional[str] = Field(None, max_length=255)
-    opt_out_url: Optional[str] = Field(None, max_length=2048)
-    category: Optional[str] = Field(None, max_length=50)
+    domains: Annotated[list[str], Field(min_length=1, max_length=50)]
+    privacy_email: str | None = Field(None, max_length=255)
+    opt_out_url: str | None = Field(None, max_length=2048)
+    category: str | None = Field(None, max_length=50)
 
     @field_validator("name")
     @classmethod
@@ -33,7 +34,7 @@ class BrokerBase(BaseModel):
 
     @field_validator("domains")
     @classmethod
-    def validate_domains(cls, v: List[str]) -> List[str]:
+    def validate_domains(cls, v: list[str]) -> list[str]:
         validated = []
         for domain in v:
             domain = domain.strip().lower()
@@ -53,7 +54,7 @@ class BrokerBase(BaseModel):
 
     @field_validator("privacy_email")
     @classmethod
-    def validate_privacy_email(cls, v: Optional[str]) -> Optional[str]:
+    def validate_privacy_email(cls, v: str | None) -> str | None:
         if v is None:
             return v
         v = v.strip().lower()
@@ -65,7 +66,7 @@ class BrokerBase(BaseModel):
 
     @field_validator("opt_out_url")
     @classmethod
-    def validate_opt_out_url(cls, v: Optional[str]) -> Optional[str]:
+    def validate_opt_out_url(cls, v: str | None) -> str | None:
         if v is None:
             return v
         v = v.strip()
@@ -77,7 +78,7 @@ class BrokerBase(BaseModel):
 
     @field_validator("category")
     @classmethod
-    def validate_category(cls, v: Optional[str]) -> Optional[str]:
+    def validate_category(cls, v: str | None) -> str | None:
         if v is None:
             return v
         v = v.strip().lower()

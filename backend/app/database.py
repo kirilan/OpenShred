@@ -1,19 +1,19 @@
 import logging
-from typing import Generator
+from collections.abc import Generator
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session, declarative_base
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-engine = create_engine(
-    settings.database_url,
-    pool_pre_ping=True,  # Verify connections before using
-    pool_size=5,
-    max_overflow=10,
-)
+# SQLite doesn't support pool_size/max_overflow options
+_engine_kwargs = {"pool_pre_ping": True}
+if not settings.database_url.startswith("sqlite"):
+    _engine_kwargs.update({"pool_size": 5, "max_overflow": 10})
+
+engine = create_engine(settings.database_url, **_engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

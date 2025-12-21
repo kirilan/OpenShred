@@ -1,25 +1,25 @@
-from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel
 
 
 class EmailScanBase(BaseModel):
     gmail_message_id: str
     sender_email: str
     sender_domain: str
-    subject: Optional[str] = None
+    subject: str | None = None
     is_broker_email: bool = False
-    confidence_score: Optional[float] = None
+    confidence_score: float | None = None
 
 
 class EmailScan(EmailScanBase):
     id: str
     user_id: str
-    broker_id: Optional[str] = None
-    recipient_email: Optional[str] = None
-    received_date: Optional[datetime] = None
-    classification_notes: Optional[str] = None
-    body_preview: Optional[str] = None
+    broker_id: str | None = None
+    recipient_email: str | None = None
+    received_date: datetime | None = None
+    classification_notes: str | None = None
+    body_preview: str | None = None
     created_at: datetime
 
     class Config:

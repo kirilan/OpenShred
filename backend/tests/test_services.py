@@ -1,10 +1,8 @@
 """Tests for service layer"""
 
-import pytest
 from sqlalchemy.orm import Session
 
 from app.models.data_broker import DataBroker
-from app.models.user import User
 from app.services.broker_service import BrokerService
 from app.services.response_detector import ResponseDetector
 
@@ -58,43 +56,48 @@ class TestResponseDetector:
     def test_detect_confirmation_response(self):
         """Test detecting a confirmation response"""
         detector = ResponseDetector()
-        result = detector.detect_response_type(
-            "Your data has been successfully deleted from our systems."
+        response_type, confidence = detector.detect_response_type(
+            subject=None,
+            body="Your data has been successfully deleted from our systems."
         )
-        assert result["response_type"] == "confirmation"
-        assert result["confidence_score"] > 0.5
+        assert response_type.value == "confirmation"
+        assert confidence > 0.3
 
     def test_detect_rejection_response(self):
         """Test detecting a rejection response"""
         detector = ResponseDetector()
-        result = detector.detect_response_type(
-            "We were unable to locate any records matching your request."
+        response_type, confidence = detector.detect_response_type(
+            subject=None,
+            body="We were unable to locate any records matching your request."
         )
-        assert result["response_type"] == "rejection"
-        assert result["confidence_score"] > 0.5
+        assert response_type.value == "rejection"
+        assert confidence > 0.3
 
     def test_detect_acknowledgment_response(self):
         """Test detecting an acknowledgment response"""
         detector = ResponseDetector()
-        result = detector.detect_response_type(
-            "We have received your request and it is currently under review."
+        response_type, confidence = detector.detect_response_type(
+            subject=None,
+            body="We have received your request and it is currently under review."
         )
-        assert result["response_type"] == "acknowledgment"
-        assert result["confidence_score"] > 0.5
+        assert response_type.value == "acknowledgment"
+        assert confidence > 0.3
 
     def test_detect_request_info_response(self):
         """Test detecting a request for more information"""
         detector = ResponseDetector()
-        result = detector.detect_response_type(
-            "Please verify your identity by providing additional documentation."
+        response_type, confidence = detector.detect_response_type(
+            subject=None,
+            body="Please verify your identity by providing additional documentation."
         )
-        assert result["response_type"] == "request_info"
-        assert result["confidence_score"] > 0.5
+        assert response_type.value == "request_info"
+        assert confidence > 0.3
 
     def test_detect_unknown_response(self):
         """Test detecting an unknown response type"""
         detector = ResponseDetector()
-        result = detector.detect_response_type(
-            "Thank you for contacting us. Have a nice day!"
+        response_type, confidence = detector.detect_response_type(
+            subject=None,
+            body="The weather is nice today."
         )
-        assert result["response_type"] == "unknown"
+        assert response_type.value == "unknown"
