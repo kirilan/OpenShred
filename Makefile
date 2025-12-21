@@ -29,11 +29,15 @@ help:
 	@echo "  make db-shell      Open PostgreSQL shell (Docker)"
 	@echo ""
 	@echo "====== Testing & Quality ======"
-	@echo "  make test          Run tests (local)"
-	@echo "  make test-cov      Run tests with coverage (local)"
+	@echo "  make test          Run backend tests"
+	@echo "  make test-cov      Run backend tests with coverage"
+	@echo "  make test-frontend Run frontend tests"
+	@echo "  make test-frontend-watch  Run frontend tests in watch mode"
+	@echo "  make test-frontend-cov    Run frontend tests with coverage"
+	@echo "  make test-all      Run all tests (backend + frontend)"
 	@echo "  make lint          Run all linters via pre-commit"
 	@echo "  make format        Format code via pre-commit"
-	@echo "  make check         Run all checks (lint + test)"
+	@echo "  make check         Run all checks (lint + tests)"
 
 # ============ Docker (Recommended) ============
 
@@ -155,6 +159,17 @@ test-v:
 test-cov:
 	cd backend && uv run pytest --cov=app --cov-report=term-missing
 
+test-frontend:
+	cd frontend && npm run test:run
+
+test-frontend-watch:
+	cd frontend && npm run test
+
+test-frontend-cov:
+	cd frontend && npm run test:coverage
+
+test-all: test test-frontend
+
 lint:
 	pre-commit run --all-files
 
@@ -162,4 +177,4 @@ format:
 	pre-commit run ruff-format --all-files
 	pre-commit run ruff --all-files
 
-check: lint test
+check: lint test-all
