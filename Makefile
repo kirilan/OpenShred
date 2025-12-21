@@ -3,42 +3,50 @@
 help:
 	@echo "Data Deletion Assistant - Development Commands"
 	@echo ""
-	@echo "Setup:"
-	@echo "  make setup         Complete project setup (env, deps, pre-commit)"
-	@echo "  make install       Install backend dependencies (uv)"
-	@echo "  make install-dev   Install with dev dependencies"
+	@echo "====== Docker (Recommended) ======"
 	@echo "  make dev           Start development environment (Docker)"
-	@echo ""
-	@echo "Local Development:"
-	@echo "  make run-backend   Run backend locally"
-	@echo "  make run-worker    Run Celery worker locally"
-	@echo "  make run-beat      Run Celery beat locally"
-	@echo ""
-	@echo "Docker:"
 	@echo "  make build         Build Docker images"
 	@echo "  make up            Start all services"
 	@echo "  make down          Stop all services"
 	@echo "  make logs          View container logs"
 	@echo "  make clean         Remove containers and volumes"
 	@echo ""
-	@echo "Database:"
+	@echo "====== Local System Setup ======"
+	@echo "  make setup         Complete local setup (env, deps, pre-commit)"
+	@echo "  make install       Install backend dependencies (uv)"
+	@echo "  make install-dev   Install all local dependencies (backend + frontend)"
+	@echo ""
+	@echo "====== Local System Development ======"
+	@echo "  make run-backend   Run backend locally (requires local deps)"
+	@echo "  make run-worker    Run Celery worker locally"
+	@echo "  make run-beat      Run Celery beat locally"
+	@echo ""
+	@echo "====== Database ======"
 	@echo "  make migrate       Run Alembic migrations"
 	@echo "  make migrate-new   Create new migration (m='description')"
-	@echo "  make db-shell      Open PostgreSQL shell"
+	@echo "  make db-shell      Open PostgreSQL shell (Docker)"
 	@echo ""
-	@echo "Testing & Quality:"
-	@echo "  make test          Run tests"
-	@echo "  make test-cov      Run tests with coverage"
-	@echo "  make lint          Run linter"
-	@echo "  make format        Format code"
-	@echo "  make check         Run all checks (lint + typecheck + test)"
-	@echo "  make pre-commit    Run pre-commit hooks on all files"
+	@echo "====== Testing & Quality ======"
+	@echo "  make test          Run tests (local)"
+	@echo "  make test-cov      Run tests with coverage (local)"
+	@echo "  make lint          Run all linters via pre-commit"
+	@echo "  make format        Format code via pre-commit"
+	@echo "  make check         Run all checks (lint + test)"
 
-# ============ Setup ============
+# ============ Docker (Recommended) ============
+
+dev: up
+	@echo ""
+	@echo "Development environment started:"
+	@echo "  Backend:  http://localhost:8000"
+	@echo "  Frontend: http://localhost:3000"
+	@echo "  API Docs: http://localhost:8000/docs"
+
+# ============ Local System Setup ============
 
 setup: .env install-dev pre-commit-install
 	@echo ""
-	@echo "Setup complete! Run 'make dev' to start the development environment."
+	@echo "Local setup complete! Run 'make dev' to start Docker environment."
 
 .env:
 	@if [ ! -f .env ]; then \
@@ -60,14 +68,7 @@ pre-commit-install:
 		echo "pre-commit not installed. Install with: pip install pre-commit"; \
 	fi
 
-dev: up
-	@echo ""
-	@echo "Development environment started:"
-	@echo "  Backend:  http://localhost:8000"
-	@echo "  Frontend: http://localhost:3000"
-	@echo "  API Docs: http://localhost:8000/docs"
-
-# ============ Local Development ============
+# ============ Local System Development ============
 
 run-backend:
 	cd backend && uv run uvicorn app.main:app --reload --port 8000
@@ -78,7 +79,7 @@ run-worker:
 run-beat:
 	cd backend && uv run celery -A app.celery_app beat --loglevel=info
 
-# ============ Docker ============
+# ============ Docker Commands ============
 
 build:
 	docker compose build
@@ -127,7 +128,7 @@ db-reset:
 	@sleep 3
 	docker compose up -d
 
-# ============ Testing ============
+# ============ Testing & Quality ============
 
 test:
 	cd backend && uv run pytest
@@ -138,21 +139,11 @@ test-v:
 test-cov:
 	cd backend && uv run pytest --cov=app --cov-report=term-missing
 
-# ============ Code Quality ============
-
 lint:
-	cd backend && uv run ruff check app tests
-
-lint-fix:
-	cd backend && uv run ruff check --fix app tests
+	pre-commit run --all-files
 
 format:
-	cd backend && uv run ruff format app tests
+	pre-commit run ruff-format --all-files
+	pre-commit run ruff --all-files
 
-typecheck:
-	cd backend && uv run mypy app
-
-check: lint typecheck test
-
-pre-commit:
-	pre-commit run --all-files
+check: lint test
