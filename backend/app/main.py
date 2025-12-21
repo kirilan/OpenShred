@@ -7,7 +7,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from app.api import activities, analytics, auth, brokers, emails, requests, responses, tasks
+from app.api import activities, admin, ai, analytics, auth, brokers, emails, requests, responses, tasks
 from app.config import settings
 from app.database import init_db
 from app.logging_config import setup_logging
@@ -72,3 +72,5 @@ app.include_router(responses.router, prefix="/responses", tags=["Broker Response
 app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 app.include_router(tasks.router, prefix="/tasks", tags=["Background Tasks"])
 app.include_router(activities.router, prefix="/activities", tags=["Activity Log"])
+app.include_router(admin.router, prefix="/admin", tags=["Admin"])
+app.include_router(ai.router, prefix="/ai", tags=["AI Settings"])
