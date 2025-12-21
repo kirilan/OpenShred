@@ -1,25 +1,25 @@
-from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel
 
 
 class EmailScanBase(BaseModel):
     gmail_message_id: str
     sender_email: str
     sender_domain: str
-    subject: Optional[str] = None
+    subject: str | None = None
     is_broker_email: bool = False
-    confidence_score: Optional[float] = None
+    confidence_score: float | None = None
 
 
 class EmailScan(EmailScanBase):
     id: str
     user_id: str
-    broker_id: Optional[str] = None
-    recipient_email: Optional[str] = None
-    received_date: Optional[datetime] = None
-    classification_notes: Optional[str] = None
-    body_preview: Optional[str] = None
+    broker_id: str | None = None
+    recipient_email: str | None = None
+    received_date: datetime | None = None
+    classification_notes: str | None = None
+    body_preview: str | None = None
     created_at: datetime
 
     class Config:
@@ -50,14 +50,14 @@ class ScanHistoryEntry(BaseModel):
     performed_at: datetime
     scan_type: str
     source: str
-    days_back: Optional[int] = None
-    max_emails: Optional[int] = None
-    total_scanned: Optional[int] = None
-    broker_emails_found: Optional[int] = None
-    sent_requests_scanned: Optional[int] = None
-    responses_found: Optional[int] = None
-    responses_updated: Optional[int] = None
-    requests_updated: Optional[int] = None
+    days_back: int | None = None
+    max_emails: int | None = None
+    total_scanned: int | None = None
+    broker_emails_found: int | None = None
+    sent_requests_scanned: int | None = None
+    responses_found: int | None = None
+    responses_updated: int | None = None
+    requests_updated: int | None = None
     message: str
 
 

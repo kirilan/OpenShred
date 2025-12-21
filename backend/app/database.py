@@ -1,16 +1,25 @@
-from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+import logging
+from collections.abc import Generator
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from app.config import settings
 
-engine = create_engine(settings.database_url)
+logger = logging.getLogger(__name__)
+
+# SQLite doesn't support pool_size/max_overflow options
+_engine_kwargs = {"pool_pre_ping": True}
+if not settings.database_url.startswith("sqlite"):
+    _engine_kwargs.update({"pool_size": 5, "max_overflow": 10})
+
+engine = create_engine(settings.database_url, **_engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
 
-def get_db():
+def get_db() -> Generator[Session, None, None]:
     """Dependency for getting database sessions"""
     db = SessionLocal()
     try:
@@ -19,35 +28,17 @@ def get_db():
         db.close()
 
 
-def init_db():
-    """Initialize database tables"""
-    # Import models to register them with SQLAlchemy's metadata
-    import app.models  # noqa: F401
+def init_db() -> None:
+    """Initialize database tables.
+
+    Note: In production, use Alembic migrations instead:
+        alembic upgrade head
+
+    This method is kept for development convenience but will be
+    deprecated in favor of migrations.
+    """
+    logger.warning(
+        "Using init_db() to create tables. "
+        "Consider using Alembic migrations for production: 'alembic upgrade head'"
+    )
     Base.metadata.create_all(bind=engine)
-
-    inspector = inspect(engine)
-    if "users" in inspector.get_table_names():
-        existing_columns = {col["name"] for col in inspector.get_columns("users")}
-        statements = []
-        added_gemini_model = False
-        if "encrypted_gemini_api_key" not in existing_columns:
-            statements.append("ALTER TABLE users ADD COLUMN encrypted_gemini_api_key TEXT")
-        if "gemini_key_updated_at" not in existing_columns:
-            statements.append("ALTER TABLE users ADD COLUMN gemini_key_updated_at TIMESTAMP")
-        if "gemini_model" not in existing_columns:
-            statements.append("ALTER TABLE users ADD COLUMN gemini_model TEXT")
-            added_gemini_model = True
-
-        if statements:
-            with engine.begin() as connection:
-                for statement in statements:
-                    connection.execute(text(statement))
-
-        if "gemini_model" in existing_columns or added_gemini_model:
-            with engine.begin() as connection:
-                connection.execute(
-                    text(
-                        "UPDATE users SET gemini_model = 'gemini-2.0-flash' "
-                        "WHERE gemini_model IS NULL"
-                    )
-                )

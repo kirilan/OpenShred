@@ -1,0 +1,29 @@
+Dear {{ broker_name }} Privacy Team,
+
+I am writing to formally request the complete deletion of all my personal data from your systems and databases.
+
+Under the California Consumer Privacy Act (CCPA), I have the right to request the deletion of my personal information.
+
+Please delete all information associated with:
+- Email: {{ user_email }}
+- Any other personal identifiers derived from the above
+
+This request includes, but is not limited to:
+- Contact information (email, phone, address)
+- Demographic information
+- Online identifiers
+- Any data obtained from third-party sources
+- All derived or inferred data
+
+Please confirm receipt of this request within 5 business days and complete the deletion within 45 days as required by law. I expect confirmation once the deletion is complete.
+
+If you require any additional information to process this request, please contact me at {{ user_email }}.
+
+Please note that I do not consent to any further processing, sharing, or sale of my data, and I expect all third parties with whom you have shared my data to be notified of this deletion request.
+
+Deadline for completion: {{ deadline }}
+
+Thank you for your prompt attention to this matter.
+
+Sincerely,
+{{ user_email }}

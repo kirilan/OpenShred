@@ -1,9 +1,9 @@
+import enum
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Text, ForeignKey, Enum, Integer
-from sqlalchemy.dialects.postgresql import UUID
+
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import relationship
-import enum
 
 from app.database import Base
 
@@ -18,11 +18,11 @@ class RequestStatus(str, enum.Enum):
 class DeletionRequest(Base):
     __tablename__ = "deletion_requests"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
 
     # Foreign keys
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    broker_id = Column(UUID(as_uuid=True), ForeignKey("data_brokers.id"), nullable=False, index=True)
+    user_id = Column(Uuid, ForeignKey("users.id"), nullable=False, index=True)
+    broker_id = Column(Uuid, ForeignKey("data_brokers.id"), nullable=False, index=True)
 
     # Request details
     status = Column(Enum(RequestStatus), default=RequestStatus.PENDING, nullable=False)

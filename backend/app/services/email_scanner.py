@@ -1,13 +1,13 @@
-from datetime import datetime, timedelta
-from typing import List, Dict
-from sqlalchemy.orm import Session
 import base64
+from datetime import datetime, timedelta
 
-from app.models.user import User
+from sqlalchemy.orm import Session
+
 from app.models.email_scan import EmailScan
-from app.services.gmail_service import GmailService
-from app.services.broker_service import BrokerService
+from app.models.user import User
 from app.services.broker_detector import BrokerDetector
+from app.services.broker_service import BrokerService
+from app.services.gmail_service import GmailService
 
 
 class EmailScanner:
@@ -17,12 +17,7 @@ class EmailScanner:
         self.broker_service = BrokerService(db)
         self.detector = BrokerDetector()
 
-    def scan_inbox(
-        self,
-        user: User,
-        days_back: int = 1,
-        max_emails: int = 100
-    ) -> List[EmailScan]:
+    def scan_inbox(self, user: User, days_back: int = 90, max_emails: int = 100) -> list[EmailScan]:
         """Scan user's Gmail inbox for data broker emails"""
 
         # Get all known brokers
@@ -30,10 +25,10 @@ class EmailScanner:
 
         # Calculate date range
         after_date = datetime.now() - timedelta(days=days_back)
-        after_str = after_date.strftime('%Y/%m/%d')
+        after_str = after_date.strftime("%Y/%m/%d")
 
         # Query Gmail for recent emails
-        query = f'after:{after_str}'
+        query = f"after:{after_str}"
 
         try:
             messages = self.gmail_service.list_messages(user, query, max_emails)
@@ -43,12 +38,12 @@ class EmailScanner:
         scans = []
 
         for message_ref in messages:
-            message_id = message_ref['id']
+            message_id = message_ref["id"]
 
             # Check if we've already scanned this email
-            existing = self.db.query(EmailScan).filter(
-                EmailScan.gmail_message_id == message_id
-            ).first()
+            existing = (
+                self.db.query(EmailScan).filter(EmailScan.gmail_message_id == message_id).first()
+            )
 
             if existing:
                 scans.append(existing)
@@ -60,10 +55,10 @@ class EmailScanner:
                 headers = self.gmail_service.get_message_headers(message)
 
                 # Extract email details
-                sender = headers.get('from', '')
-                recipient = headers.get('to', '')
-                subject = headers.get('subject', '')
-                date_str = headers.get('date', '')
+                sender = headers.get("from", "")
+                recipient = headers.get("to", "")
+                subject = headers.get("subject", "")
+                date_str = headers.get("date", "")
 
                 # Parse sender email
                 sender_email = self._extract_email(sender)
@@ -77,12 +72,7 @@ class EmailScanner:
 
                 # Detect if broker email
                 broker, confidence, notes = self.detector.detect_broker(
-                    sender_email,
-                    sender_domain,
-                    subject,
-                    body_html,
-                    body_text,
-                    all_brokers
+                    sender_email, sender_domain, subject, body_html, body_text, all_brokers
                 )
 
                 # Get body preview
@@ -104,7 +94,7 @@ class EmailScanner:
                     is_broker_email=broker is not None or confidence > 0.5,
                     confidence_score=confidence,
                     classification_notes=notes,
-                    body_preview=body_preview
+                    body_preview=body_preview,
                 )
 
                 self.db.add(scan)
@@ -123,12 +113,13 @@ class EmailScanner:
     def _extract_email(self, from_header: str) -> str:
         """Extract email address from From header"""
         import re
-        match = re.search(r'[\w\.-]+@[\w\.-]+', from_header)
+
+        match = re.search(r"[\w\.-]+@[\w\.-]+", from_header)
         if match:
             return match.group(0)
         return from_header
 
-    def _extract_body(self, message: Dict) -> tuple[str, str]:
+    def _extract_body(self, message: dict) -> tuple[str, str]:
         """Extract HTML and text body from Gmail message"""
         body_html = ""
         body_text = ""
@@ -136,46 +127,47 @@ class EmailScanner:
         def parse_parts(parts):
             nonlocal body_html, body_text
             for part in parts:
-                mime_type = part.get('mimeType', '')
+                mime_type = part.get("mimeType", "")
 
-                if mime_type == 'text/plain' and 'data' in part.get('body', {}):
-                    body_text = base64.urlsafe_b64decode(
-                        part['body']['data']
-                    ).decode('utf-8', errors='ignore')
+                if mime_type == "text/plain" and "data" in part.get("body", {}):
+                    body_text = base64.urlsafe_b64decode(part["body"]["data"]).decode(
+                        "utf-8", errors="ignore"
+                    )
 
-                elif mime_type == 'text/html' and 'data' in part.get('body', {}):
-                    body_html = base64.urlsafe_b64decode(
-                        part['body']['data']
-                    ).decode('utf-8', errors='ignore')
+                elif mime_type == "text/html" and "data" in part.get("body", {}):
+                    body_html = base64.urlsafe_b64decode(part["body"]["data"]).decode(
+                        "utf-8", errors="ignore"
+                    )
 
-                if 'parts' in part:
-                    parse_parts(part['parts'])
+                if "parts" in part:
+                    parse_parts(part["parts"])
 
-        if 'payload' in message:
-            payload = message['payload']
+        if "payload" in message:
+            payload = message["payload"]
 
             # Single part message
-            if 'body' in payload and 'data' in payload['body']:
-                mime_type = payload.get('mimeType', '')
-                if mime_type == 'text/plain':
-                    body_text = base64.urlsafe_b64decode(
-                        payload['body']['data']
-                    ).decode('utf-8', errors='ignore')
-                elif mime_type == 'text/html':
-                    body_html = base64.urlsafe_b64decode(
-                        payload['body']['data']
-                    ).decode('utf-8', errors='ignore')
+            if "body" in payload and "data" in payload["body"]:
+                mime_type = payload.get("mimeType", "")
+                if mime_type == "text/plain":
+                    body_text = base64.urlsafe_b64decode(payload["body"]["data"]).decode(
+                        "utf-8", errors="ignore"
+                    )
+                elif mime_type == "text/html":
+                    body_html = base64.urlsafe_b64decode(payload["body"]["data"]).decode(
+                        "utf-8", errors="ignore"
+                    )
 
             # Multi-part message
-            if 'parts' in payload:
-                parse_parts(payload['parts'])
+            if "parts" in payload:
+                parse_parts(payload["parts"])
 
         return body_html, body_text
 
     def _parse_date(self, date_str: str) -> datetime:
         """Parse email date string"""
         from email.utils import parsedate_to_datetime
+
         try:
             return parsedate_to_datetime(date_str)
-        except:
+        except Exception:
             return datetime.now()

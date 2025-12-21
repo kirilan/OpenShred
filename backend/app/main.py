@@ -1,44 +1,71 @@
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
+from app.api import (
+    activities,
+    admin,
+    ai,
+    analytics,
+    auth,
+    brokers,
+    emails,
+    requests,
+    responses,
+    tasks,
+)
 from app.config import settings
 from app.database import init_db
-from app.api import auth, brokers, emails, requests, tasks, responses, analytics, activities, admin, ai
+from app.logging_config import setup_logging
+
+# Setup logging
+setup_logging()
+logger = logging.getLogger(__name__)
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler"""
+    logger.info("Starting Data Deletion Assistant API")
+    init_db()
+    logger.info("Database initialized")
+    yield
+    logger.info("Shutting down Data Deletion Assistant API")
+
 
 app = FastAPI(
     title="Data Deletion Assistant API",
     description="API for automating GDPR/CCPA data deletion requests",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
-allowed_origins = ["*"]
-if settings.environment.lower() == "production":
-    allowed_origins = [settings.frontend_url.rstrip("/")]
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS middleware
+# CORS middleware - use configured origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
-
-
-@app.on_event("startup")
-def startup_event():
-    """Initialize database on startup"""
-    init_db()
 
 
 @app.get("/")
 def read_root():
     """Root endpoint"""
-    return {
-        "message": "Data Deletion Assistant API",
-        "docs": "/docs",
-        "version": "1.0.0"
-    }
+    return {"message": "Data Deletion Assistant API", "docs": "/docs", "version": "1.0.0"}
 
 
 @app.get("/health")

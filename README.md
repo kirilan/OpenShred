@@ -44,7 +44,7 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 - [Architecture](#-architecture)
 - [Getting Started](#-getting-started)
   - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
+  - [Quick Start](#quick-start)
   - [Configuration](#configuration)
 - [Usage](#-usage)
 - [Development](#-development)
@@ -208,20 +208,38 @@ To switch back to daily scheduling, adjust the Beat schedule in `backend/app/cel
 ### Prerequisites
 
 - **Docker** and **Docker Compose** (recommended)
-  - OR **Python 3.11+**, **Node.js 20+**, **PostgreSQL 15**, **Redis 7**
-- **Google Cloud Project** with Gmail API enabled
-- **Gmail Account** for testing
+- **Python 3.11 or 3.12** (not 3.13 - lxml compatibility)
+- **Node.js 20+**
+- **uv** - Python package manager (recommended for local development)
+- **Google Cloud Project** with Gmail API enabled (for full functionality)
 
-### Installation
+> **Platform-specific instructions**: See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed Windows/Linux/macOS setup guides.
 
-#### 1. Clone the Repository
+### Quick Start
 
+**Linux/macOS:**
 ```bash
 git clone https://github.com/kirilan/OpenShred.git
 cd OpenShred
+./scripts/setup.sh   # or: make setup
+make dev
 ```
 
-#### 2. Set Up Google OAuth Credentials
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/kirilan/OpenShred.git
+cd OpenShred
+.\scripts\setup.ps1
+docker compose up -d
+```
+
+Access the application:
+- **Frontend**: http://localhost:3000
+- **API Docs**: http://localhost:8000/docs
+
+### Configuration
+
+#### 1. Google OAuth Setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
 2. Create a new project or select an existing one
@@ -238,9 +256,7 @@ cd OpenShred
      - `http://localhost:3000/oauth-callback`
    - Click **Create** and copy the **Client ID** and **Client Secret**
 
-#### 3. Configure Environment Variables
-
-Create a `.env` file in the project root:
+#### 2. Environment Variables
 
 ```bash
 cp .env.example .env
@@ -285,7 +301,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-#### 4. Start the Application
+#### 3. Start the Application
 
 ```bash
 docker-compose up --build
@@ -299,7 +315,7 @@ This will start:
 - **Celery beat** for scheduled tasks
 - **React frontend** on port `3000`
 
-#### 5. Access the Application
+#### 4. Access the Application
 
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000
@@ -320,6 +336,63 @@ When you are ready to expose the app publicly:
 5. Caddy (configured via `Caddyfile`) will terminate TLS on ports `80/443`, obtain certificates automatically, and forward traffic to the internal `frontend` and `backend` services while the FastAPI app locks CORS down to `FRONTEND_URL`.
 
 Switching `ENVIRONMENT` back to `development` lets you continue running entirely on `localhost` without the reverse proxy.
+
+### Local Development (without Docker)
+
+You can use either **uv** (recommended) or **pip** for backend development.
+
+#### Using uv (Recommended)
+
+```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Linux/macOS
+# powershell -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
+
+# Install dependencies
+make install-dev
+
+# Start PostgreSQL and Redis
+docker compose up -d db redis
+
+# Run backend (uv handles venv automatically)
+make run-backend      # or: cd backend && uv run uvicorn app.main:app --reload
+
+# Run tests
+make test             # or: cd backend && uv run pytest
+```
+
+#### Using pip (Alternative)
+
+```bash
+# Create and activate virtual environment
+cd backend
+python -m venv .venv
+source .venv/bin/activate     # Linux/macOS
+# .venv\Scripts\activate      # Windows
+
+# Install dependencies
+pip install -r requirements-dev.txt
+
+# Run backend (venv must be activated)
+uvicorn app.main:app --reload
+
+# Run tests
+pytest
+```
+
+> **Detailed guide**: See [CONTRIBUTING.md](CONTRIBUTING.md) for the full backend development workflow, including dependency management and the comparison between uv and pip.
+
+### Available Make Commands
+
+```
+make help              Show all commands
+make dev               Start Docker environment
+make test              Run tests
+make test-all          Run backend + frontend tests
+make lint              Run linters via pre-commit
+make check             Run lint + test
+make sync-requirements Regenerate requirements.txt from pyproject.toml
+```
 
 ---
 
@@ -385,27 +458,21 @@ Switching `ENVIRONMENT` back to `development` lets you continue running entirely
 
 ## 🛠️ Development
 
-### **Run Without Docker**
+### Backend (uv)
 
-#### Backend
+The backend uses [uv](https://docs.astral.sh/uv/) for fast, reliable dependency management.
 
 ```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+# Install dependencies
+make install-dev
+
+# Run locally (requires PostgreSQL + Redis)
+make run-backend    # API server
+make run-worker     # Celery worker
+make run-beat       # Celery beat scheduler
 ```
 
-Start Celery worker:
-```bash
-celery -A app.celery_app worker --loglevel=info
-```
-
-Start Celery beat:
-```bash
-celery -A app.celery_app beat --loglevel=info
-```
-
-#### Frontend
+### Frontend
 
 ```bash
 cd frontend
@@ -413,36 +480,74 @@ npm install
 npm run dev
 ```
 
-Frontend will be available at http://localhost:5173
+Frontend available at http://localhost:5173
 
-### **Database Migrations**
-
-Currently using `init_db()` which creates tables on startup. For production, use Alembic:
+### Database Migrations
 
 ```bash
-cd backend
-alembic init alembic
-alembic revision --autogenerate -m "Initial migration"
-alembic upgrade head
+# Run migrations
+make migrate
+
+# Create new migration
+make migrate-new m="Add new table"
+
+# View migration history
+make migrate-history
 ```
 
-### **Running Tests**
+### Testing & Code Quality
 
 ```bash
-# Backend tests
-cd backend
-pytest
-
-# Frontend tests
-cd frontend
-npm test
+make test              # Run backend tests
+make test-cov          # Backend tests with coverage
+make test-frontend     # Run frontend tests
+make test-all          # Run all tests
+make lint              # Check code style
+make format            # Auto-format code
+make check             # Run all checks (lint + tests)
 ```
 
-### **Building for Production**
+### Docker Configuration
 
+The project uses multi-stage Docker builds with security-focused defaults:
+
+| File | Purpose | Target |
+|------|---------|--------|
+| `docker-compose.yml` | Local development | `development` stage |
+| `docker-compose.prod.yml` | Production deployment | `production` stage |
+
+**Security Features:**
+- All containers run as non-root user (`appuser` UID 1000)
+- Multi-stage builds minimize image size
+- Production images contain no build tools
+
+**Port Configuration** (via `.env`):
+```env
+POSTGRES_PORT=5432    # PostgreSQL
+REDIS_PORT=6379       # Redis
+BACKEND_PORT=8000     # FastAPI backend
+FRONTEND_PORT=3000    # Frontend (dev) / 80 (prod)
+```
+
+**Building for Production:**
 ```bash
-docker-compose -f docker-compose.prod.yml up --build
+docker compose -f docker-compose.prod.yml up --build
 ```
+
+### CI/CD Pipeline
+
+GitHub Actions runs automatically on every push and pull request:
+
+| Job | Description |
+|-----|-------------|
+| `backend-lint` | Ruff linting + formatting check |
+| `backend-test` | pytest with PostgreSQL service |
+| `frontend-lint` | ESLint + TypeScript check |
+| `frontend-test` | Vitest with coverage |
+| `frontend-build` | Production build test |
+| `docker-build` | Docker image build test |
+
+Pre-commit hooks enforce code quality locally before commits.
 
 ---
 
@@ -456,6 +561,7 @@ OpenShred/
 │   │   ├── config.py               # Settings & environment config
 │   │   ├── database.py             # Database connection
 │   │   ├── celery_app.py           # Celery configuration
+│   │   ├── logging_config.py       # Structured logging
 │   │   ├── models/                 # SQLAlchemy ORM models
 │   │   │   ├── user.py
 │   │   │   ├── data_broker.py
@@ -481,10 +587,14 @@ OpenShred/
 │   │   │   ├── requests.py
 │   │   │   ├── responses.py
 │   │   │   └── analytics.py
+│   │   ├── templates/              # Email templates (GDPR/CCPA)
 │   │   └── utils/
 │   │       └── email_templates.py  # GDPR/CCPA email templates
+│   ├── tests/                      # pytest tests
+│   ├── alembic/                    # Database migrations
 │   ├── data/
 │   │   └── data_brokers.json       # Known data broker database
+│   ├── pyproject.toml              # uv/Python dependencies
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/
@@ -510,13 +620,17 @@ OpenShred/
 │   │   │   └── api.ts              # Axios API client
 │   │   ├── stores/
 │   │   │   └── authStore.ts        # Zustand auth store
+│   │   ├── test/                   # Test utilities and mocks
 │   │   ├── types/                  # TypeScript type definitions
 │   │   ├── App.tsx
 │   │   └── main.tsx
 │   ├── package.json
 │   └── Dockerfile
+├── Makefile                        # Development commands
 ├── docker-compose.yml
+├── docker-compose.prod.yml
 ├── .env.example
+├── CONTRIBUTING.md                 # Contributor guide
 ├── LICENSE
 └── README.md
 ```
@@ -540,7 +654,7 @@ OpenShred/
 ### **Best Practices**
 - Use strong, randomly generated `SECRET_KEY` and `ENCRYPTION_KEY`
 - Keep `.env` file out of version control (`.gitignore` included)
-- Use HTTPS in production (configure Nginx SSL)
+- Use HTTPS in production (configure Nginx SSL or use Caddy)
 - Regularly update dependencies for security patches
 - Promote trusted accounts to admin by setting `is_admin = true` in the `users` table (for example via `UPDATE users SET is_admin=true WHERE email='you@example.com';`) and re-authenticating to mint a new JWT
 
@@ -548,13 +662,14 @@ OpenShred/
 
 ## 🤝 Contributing
 
-Contributions are welcome! Here's how you can help:
+Contributions are welcome! See **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed setup instructions for Windows, Linux, and macOS.
 
+### Quick Steps:
 1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Commit your changes**: `git commit -m 'Add amazing feature'`
-4. **Push to the branch**: `git push origin feature/amazing-feature`
-5. **Open a Pull Request**
+2. **Set up your environment**: `./scripts/setup.sh` (Linux/macOS) or `.\scripts\setup.ps1` (Windows)
+3. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+4. **Make your changes** (pre-commit hooks run automatically)
+5. **Push and open a Pull Request**
 
 ### **Areas for Contribution**
 - Add more data brokers to `backend/data/data_brokers.json`
@@ -619,7 +734,14 @@ If you encounter issues:
 - Request timeline entries include Gmail rate-limit messaging
 - Admin task queue health widget for worker status and queue depth
 
-### v1.0.0 - Current Release (December 2024)
+**Developer Experience**
+- Frontend test suite with Vitest + React Testing Library + MSW
+- CI/CD pipeline with GitHub Actions (lint, test, build, docker)
+- Makefile with common development commands
+- uv for fast Python dependency management
+- Pre-commit hooks for code quality
+
+### v1.0.0 - Initial Release (December 2024)
 
 **✅ Completed Features**
 - ✨ **Response Tracking System** - Automatic broker response detection and classification
@@ -670,4 +792,4 @@ If you encounter issues:
 
 Made with care for privacy advocates everywhere.
 
-Remember: Your data is yours. Exercise your rights.
+Remember: Your data is yours. Exercise your rights. 🛡️

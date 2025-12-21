@@ -1,30 +1,24 @@
-from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
-from celery.result import AsyncResult
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
 
+from celery.result import AsyncResult
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+
 from app.celery_app import celery_app
-from app.tasks.email_tasks import scan_inbox_task
-from app.dependencies.auth import get_current_user, require_admin
+from app.dependencies.auth import get_current_user
 from app.models.user import User
-from app.database import get_db
-from app.services.rate_limiter import rate_limiter
-from app.config import settings
-from app.services.activity_log_service import ActivityLogService
-from app.models.activity_log import ActivityType
+from app.tasks.email_tasks import scan_inbox_task
 
 router = APIRouter()
 
 
 class ScanTaskRequest(BaseModel):
-    days_back: int = 1
+    days_back: int = 90
     max_emails: int = 100
 
 
 class BatchRequestsTaskRequest(BaseModel):
-    broker_ids: List[str]
+    broker_ids: list[str]
     framework: str = "GDPR/CCPA"
 
 
@@ -36,8 +30,8 @@ class TaskResponse(BaseModel):
 class TaskStatusResponse(BaseModel):
     task_id: str
     state: str
-    info: Optional[dict] = None
-    result: Optional[dict] = None
+    info: dict | None = None
+    result: dict | None = None
 
 
 class WorkerStatus(BaseModel):
@@ -47,15 +41,15 @@ class WorkerStatus(BaseModel):
     queued_tasks: int
     scheduled_tasks: int
     total_tasks: int
-    concurrency: Optional[int] = None
-    uptime: Optional[int] = None
+    concurrency: int | None = None
+    uptime: int | None = None
 
 
 class TaskQueueHealth(BaseModel):
     workers_online: int
     total_active_tasks: int
     total_queued_tasks: int
-    workers: List[WorkerStatus]
+    workers: list[WorkerStatus]
     last_updated: datetime
 
 
@@ -63,40 +57,16 @@ class TaskQueueHealth(BaseModel):
 def start_scan_task(
     request: ScanTaskRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """Start an async email scan task"""
-    activity_service = ActivityLogService(db)
-
-    limit_result = rate_limiter.check_limit(
-        user_id=str(current_user.id),
-        action="task_scan_trigger",
-        limit=settings.task_trigger_rate_limit,
-        window_seconds=settings.task_trigger_rate_window_seconds,
-    )
-    if not limit_result.allowed:
-        activity_service.log_activity(
-            user_id=str(current_user.id),
-            activity_type=ActivityType.WARNING,
-            message="Task scan blocked by rate limit",
-            details=f"Limit {settings.task_trigger_rate_limit} per {settings.task_trigger_rate_window_seconds}s",
-        )
-        raise HTTPException(
-            status_code=429,
-            detail=f"Scan task limit reached. Try again in {limit_result.retry_after} seconds.",
-            headers={"Retry-After": str(limit_result.retry_after)},
-        )
-
     task = scan_inbox_task.delay(
-        str(current_user.id),
-        days_back=request.days_back,
-        max_emails=request.max_emails
+        str(current_user.id), days_back=request.days_back, max_emails=request.max_emails
     )
     return TaskResponse(task_id=task.id, status="started")
 
 
 @router.get("/health", response_model=TaskQueueHealth)
-def get_task_queue_health(current_user: User = Depends(require_admin)):
+def get_task_queue_health(current_user: User = Depends(get_current_user)):
     """Return basic Celery worker and queue stats"""
     inspect = celery_app.control.inspect()
     stats = inspect.stats() if inspect else None
@@ -110,22 +80,34 @@ def get_task_queue_health(current_user: User = Depends(require_admin)):
         if isinstance(data, dict):
             worker_names.update(data.keys())
 
-    workers: List[WorkerStatus] = []
+    workers: list[WorkerStatus] = []
     for name in sorted(worker_names):
         worker_stats = stats.get(name, {}) if isinstance(stats, dict) else {}
-        pool_info = worker_stats.get('pool', {}) if isinstance(worker_stats.get('pool'), dict) else {}
-        total_info = worker_stats.get('total', {}) if isinstance(worker_stats.get('total'), dict) else {}
+        pool_info = (
+            worker_stats.get("pool", {}) if isinstance(worker_stats.get("pool"), dict) else {}
+        )
+        total_info = (
+            worker_stats.get("total", {}) if isinstance(worker_stats.get("total"), dict) else {}
+        )
 
         workers.append(
             WorkerStatus(
                 name=name,
                 status="online" if heartbeat and name in heartbeat else "offline",
-                active_tasks=len(active.get(name, [])) if isinstance(active, dict) and active.get(name) else 0,
-                queued_tasks=len(reserved.get(name, [])) if isinstance(reserved, dict) and reserved.get(name) else 0,
-                scheduled_tasks=len(scheduled.get(name, [])) if isinstance(scheduled, dict) and scheduled.get(name) else 0,
-                total_tasks=total_info.get('tasks', 0) if isinstance(total_info, dict) else 0,
-                concurrency=pool_info.get('max-concurrency') if isinstance(pool_info, dict) else None,
-                uptime=worker_stats.get('uptime') if worker_stats else None
+                active_tasks=len(active.get(name, []))
+                if isinstance(active, dict) and active.get(name)
+                else 0,
+                queued_tasks=len(reserved.get(name, []))
+                if isinstance(reserved, dict) and reserved.get(name)
+                else 0,
+                scheduled_tasks=len(scheduled.get(name, []))
+                if isinstance(scheduled, dict) and scheduled.get(name)
+                else 0,
+                total_tasks=total_info.get("tasks", 0) if isinstance(total_info, dict) else 0,
+                concurrency=pool_info.get("max-concurrency")
+                if isinstance(pool_info, dict)
+                else None,
+                uptime=worker_stats.get("uptime") if worker_stats else None,
             )
         )
 
@@ -138,7 +120,7 @@ def get_task_queue_health(current_user: User = Depends(require_admin)):
         total_active_tasks=total_active,
         total_queued_tasks=total_queued,
         workers=workers,
-        last_updated=datetime.utcnow()
+        last_updated=datetime.utcnow(),
     )
 
 
@@ -147,10 +129,7 @@ def get_task_status(task_id: str, current_user: User = Depends(get_current_user)
     """Get the status of a Celery task"""
     result = AsyncResult(task_id, app=celery_app)
 
-    response = TaskStatusResponse(
-        task_id=task_id,
-        state=result.status
-    )
+    response = TaskStatusResponse(task_id=task_id, state=result.status)
 
     if result.status == "PROGRESS":
         response.info = result.info

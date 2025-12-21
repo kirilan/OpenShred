@@ -18,23 +18,15 @@ until PGPASSWORD=$DB_PASS psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c '\q'
 done
 echo "✓ Database is ready"
 
-RUN_DB_MIGRATIONS=${RUN_DB_MIGRATIONS:-true}
-
-if [ "$RUN_DB_MIGRATIONS" = "true" ] || [ "$RUN_DB_MIGRATIONS" = "1" ]; then
-  echo ""
-  echo "Ensuring base tables exist..."
-  python -c "from app.database import init_db; init_db()"
-  echo ""
-  echo "Running database migrations..."
-  if python migrations/run_migrations.py; then
-      echo "✓ Migrations complete"
-  else
-      echo "✗ Migrations failed"
-      exit 1
-  fi
+# Run Alembic migrations (creates/updates schema from SQLAlchemy models)
+echo ""
+echo "Running database migrations..."
+alembic upgrade head
+if [ $? -eq 0 ]; then
+    echo "✓ Migrations complete"
 else
-  echo ""
-  echo "Skipping database migrations (RUN_DB_MIGRATIONS=$RUN_DB_MIGRATIONS)"
+    echo "✗ Migrations failed"
+    exit 1
 fi
 
 echo ""

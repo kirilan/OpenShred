@@ -1,8 +1,8 @@
-from datetime import datetime, timezone, timedelta
-from typing import Optional
+from datetime import UTC, datetime, timedelta
+from uuid import UUID
 
 import jwt
-from fastapi import Depends, Header, HTTPException, status, Query
+from fastapi import Depends, Header, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -29,7 +29,7 @@ def decode_token(token: str) -> dict:
 
 
 def get_current_user(
-    authorization: Optional[str] = Header(None, alias="Authorization"),
+    authorization: str | None = Header(None, alias="Authorization"),
     db: Session = Depends(get_db),
 ) -> User:
     if not authorization or not authorization.lower().startswith("bearer "):
@@ -40,11 +40,19 @@ def get_current_user(
 
     token = authorization.split(" ", 1)[1]
     payload = decode_token(token)
-    user_id = payload.get("sub")
-    if not user_id:
+    user_id_str = payload.get("sub")
+    if not user_id_str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication payload",
+        )
+
+    try:
+        user_id = UUID(user_id_str)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID format",
         )
 
     user = db.query(User).filter(User.id == user_id).first()
@@ -92,7 +100,7 @@ def create_access_token(
     is_admin: bool,
     expires_delta_seconds: int = 60 * 60 * 12,
 ) -> str:
-    expire = datetime.now(tz=timezone.utc) + timedelta(seconds=expires_delta_seconds)
+    expire = datetime.now(tz=UTC) + timedelta(seconds=expires_delta_seconds)
     payload = {
         "sub": subject,
         "email": email,

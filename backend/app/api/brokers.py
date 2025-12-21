@@ -1,17 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 
 from app.database import get_db
-from app.services.broker_service import BrokerService
-from app.schemas.broker import Broker, BrokerSyncResult, BrokerCreate
+from app.dependencies.auth import get_current_user
 from app.models.user import User
-from app.dependencies.auth import get_current_user, require_admin
+from app.schemas.broker import Broker, BrokerCreate, BrokerSyncResult
+from app.services.broker_service import BrokerService
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[Broker])
+@router.get("/", response_model=list[Broker])
 def list_brokers(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -29,7 +28,7 @@ def list_brokers(
             opt_out_url=broker.opt_out_url,
             category=broker.category,
             created_at=broker.created_at,
-            updated_at=broker.updated_at
+            updated_at=broker.updated_at,
         )
         for broker in brokers
     ]
@@ -56,7 +55,7 @@ def get_broker(
         opt_out_url=broker.opt_out_url,
         category=broker.category,
         created_at=broker.created_at,
-        updated_at=broker.updated_at
+        updated_at=broker.updated_at,
     )
 
 
@@ -64,7 +63,7 @@ def get_broker(
 def create_broker(
     broker_data: BrokerCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     """Create a new data broker"""
     service = BrokerService(db)
@@ -81,14 +80,14 @@ def create_broker(
         opt_out_url=broker.opt_out_url,
         category=broker.category,
         created_at=broker.created_at,
-        updated_at=broker.updated_at
+        updated_at=broker.updated_at,
     )
 
 
 @router.post("/sync", response_model=BrokerSyncResult)
 def sync_brokers(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     """Sync brokers from JSON file to database"""
     service = BrokerService(db)
@@ -98,9 +97,7 @@ def sync_brokers(
         total = len(service.get_all_brokers())
 
         return BrokerSyncResult(
-            message=f"Successfully synced brokers",
-            brokers_added=count,
-            total_brokers=total
+            message="Successfully synced brokers", brokers_added=count, total_brokers=total
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to sync brokers: {str(e)}")

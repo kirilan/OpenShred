@@ -1,26 +1,26 @@
-from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, Literal
+
+from pydantic import BaseModel
 
 
 class BrokerResponseBase(BaseModel):
     gmail_message_id: str
-    gmail_thread_id: Optional[str] = None
+    gmail_thread_id: str | None = None
     sender_email: str
-    subject: Optional[str] = None
-    body_text: Optional[str] = None
-    received_date: Optional[datetime] = None
+    subject: str | None = None
+    body_text: str | None = None
+    received_date: datetime | None = None
     response_type: str  # 'confirmation', 'rejection', 'acknowledgment', 'request_info', 'unknown'
-    confidence_score: Optional[float] = None
-    matched_by: Optional[str] = None
+    confidence_score: float | None = None
+    matched_by: str | None = None
 
 
 class BrokerResponse(BrokerResponseBase):
     id: str
     user_id: str
-    deletion_request_id: Optional[str] = None
+    deletion_request_id: str | None = None
     is_processed: bool
-    processed_at: Optional[datetime] = None
+    processed_at: datetime | None = None
     created_at: datetime
 
     class Config:
@@ -29,18 +29,3 @@ class BrokerResponse(BrokerResponseBase):
 
 class ScanResponsesRequest(BaseModel):
     days_back: int = 7
-
-
-ResponseTypeLiteral = Literal[
-    "confirmation",
-    "rejection",
-    "acknowledgment",
-    "request_info",
-    "unknown",
-]
-
-
-class ClassifyResponseRequest(BaseModel):
-    response_type: ResponseTypeLiteral
-    confidence_score: Optional[float] = None
-    deletion_request_id: Optional[str] = None

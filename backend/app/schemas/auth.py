@@ -1,6 +1,6 @@
-from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel, EmailStr
 
 
 class UserBase(BaseModel):
@@ -24,6 +24,6 @@ class User(UserBase):
 
 class AuthStatus(BaseModel):
     is_authenticated: bool
-    user: Optional[User] = None
+    user: User | None = None
     message: str
-    token: Optional[str] = None
+    token: str | None = None

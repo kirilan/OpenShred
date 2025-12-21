@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, EmailStr
 
@@ -9,7 +8,7 @@ class UserSummary(BaseModel):
     email: EmailStr
     google_id: str
     is_admin: bool
-    last_scan_at: Optional[datetime] = None
+    last_scan_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
