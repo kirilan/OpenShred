@@ -91,13 +91,15 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 - Recent broker responses with type badges
 - Quick action shortcuts to key features
 
-- Admin-only task queue health widget exposes Celery worker status, queue depth, and refresh controls
+- Task queue health widget exposes Celery worker status, queue depth, and refresh controls for all users
 
-### 🤖 **AI Assist**
-- Per-user Gemini API key + model selection in Settings
+### 🤖 **AI Assist (Per-User)**
+- Each user configures their own Gemini API key + model selection in Settings
+- API keys encrypted at rest using Fernet encryption - completely isolated per user
 - AI Assist reclassifies all responses on a thread when invoked
 - Structured JSON output shown in-app and logged in the activity feed
 - Status updates only when model output is valid JSON with confidence ≥ 0.75
+- Zero cross-user access - your API key is used only for your requests
 
 ### 🎯 **Advanced Analytics**
 - Visual charts with recharts library
@@ -106,10 +108,12 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 - Timeline views (7/30/90 day ranges)
 - Average response time tracking
 
-### 👥 **Manual Broker Management**
+### 👥 **Broker Management**
+- All users can sync brokers from the built-in directory
 - Collapsible "Manual Broker Entry" form for quickly adding new brokers (name, domains, privacy email, opt-out URL, category)
 - Broker cards highlight whether a deletion request already exists and disable the CTA accordingly
 - Inline validation/error handling bubbled up from the backend
+- Community-driven broker database available to all users
 
 ---
 
@@ -444,7 +448,15 @@ make sync-requirements Regenerate requirements.txt from pyproject.toml
 6. Filter by response type
 7. Scheduled response scans run hourly during development (configurable in Celery Beat)
 
-### **6. View Analytics**
+### **6. Configure AI Assist (Optional)**
+
+1. Navigate to **Settings** page
+2. Enter your Google Gemini API key
+3. Select your preferred model (e.g., gemini-1.5-flash, gemini-1.5-pro)
+4. Your API key is encrypted and stored securely - only you can use it
+5. Use AI Assist on the Deletion Requests page to reclassify responses
+
+### **7. View Analytics**
 
 1. Navigate to **Analytics** page
 2. View success metrics:
@@ -453,6 +465,7 @@ make sync-requirements Regenerate requirements.txt from pyproject.toml
    - Timeline charts (requests sent vs confirmations)
    - Broker compliance ranking
    - Response type distribution
+3. View task queue health on the Dashboard (worker status, active tasks, queue depth)
 
 ---
 
@@ -640,7 +653,9 @@ OpenShred/
 ## 🔒 Security
 
 ### **Data Protection**
-- OAuth tokens encrypted at rest using **Fernet** symmetric encryption
+- **OAuth tokens** encrypted at rest using **Fernet** symmetric encryption
+- **Gemini API keys** encrypted at rest per user - zero cross-user access
+- **JWT authentication** on all API endpoints - user data completely isolated
 - Email content never logged to files
 - Secure PostgreSQL connections with SSL support
 - Environment variables for sensitive credentials
@@ -650,13 +665,14 @@ OpenShred/
 - CCPA compliance for California residents
 - No third-party data sharing
 - User data stored locally in your database
+- AI features use per-user API keys with encrypted storage
 
 ### **Best Practices**
 - Use strong, randomly generated `SECRET_KEY` and `ENCRYPTION_KEY`
 - Keep `.env` file out of version control (`.gitignore` included)
 - Use HTTPS in production (configure Nginx SSL or use Caddy)
 - Regularly update dependencies for security patches
-- Promote trusted accounts to admin by setting `is_admin = true` in the `users` table (for example via `UPDATE users SET is_admin=true WHERE email='you@example.com';`) and re-authenticating to mint a new JWT
+- All users have access to all features - no admin promotion needed for normal operations
 
 ---
 
@@ -718,7 +734,28 @@ If you encounter issues:
 
 ## 📰 Recent Updates
 
-### v1.1.x - Current Development (December 2025)
+### v1.2.x - Democratization Release (December 2025)
+
+**Feature Democratization**
+- 🎉 **All features now available to all authenticated users** - removed admin role requirements
+- All users can create/sync data brokers, view task queue health, and access all analytics
+- Gemini API keys encrypted at rest per user with complete isolation
+- AI Assist fully per-user - your API key only classifies your responses
+- Updated test suite to reflect democratized feature access
+
+**Security Enhancements**
+- Gemini API key encryption using Fernet - stored securely per user
+- JWT authentication on all endpoints with complete user data isolation
+- Zero cross-user access to API keys or data
+- Database migration system using Alembic for schema changes
+
+**Infrastructure Improvements**
+- Fixed Nginx proxy configuration for all API endpoints
+- Removed unnecessary userId query parameters (backend uses JWT auth)
+- Python version constraint (3.11-3.12) to avoid build issues
+- All CI/CD checks passing (29/29 backend tests, full frontend test suite)
+
+### v1.1.x - AI Assist & Analytics (December 2025)
 
 **Highlights**
 - AI Assist with per-user Gemini API key + model selection, structured JSON output dialog, and activity logging
@@ -727,12 +764,11 @@ If you encounter issues:
 - Scan history includes manual and automated response scans
 - Settings page centralizes theme toggle and AI configuration
 
-**Security & Admin**
-- JWT auth guard on every API request with admin-only scopes
-- Per-user `is_admin` gate for privileged actions (Celery health, broker sync, etc.)
+**Authentication & Security**
+- JWT auth guard on every API request
 - Manual broker entry UI with backend validation
 - Request timeline entries include Gmail rate-limit messaging
-- Admin task queue health widget for worker status and queue depth
+- Task queue health widget for worker status and queue depth
 
 **Developer Experience**
 - Frontend test suite with Vitest + React Testing Library + MSW
@@ -768,11 +804,12 @@ If you encounter issues:
 ## 🧞️ Roadmap
 
 ### Near-term (next sprint)
+- [x] ~~Democratize all features - remove admin requirements~~ ✅ Completed in v1.2.x
+- [x] ~~Per-user AI Assist with encrypted API keys~~ ✅ Completed in v1.2.x
 - [ ] Ship backend rate limiting & abuse controls on scan/task endpoints
-- [ ] Admin management UI (promote/demote users without SQL)
-- [ ] Hide admin-only widgets (Celery health, broker sync) for non-admin accounts
 - [ ] Broker import/export tooling with CSV/JSON validation
 - [ ] Better dashboard error surfaces for expired tokens / 401s
+- [ ] User profile page with API key management and usage stats
 
 ### Mid-term (v1.5)
 - [ ] Customizable email templates plus identity/attachment support
