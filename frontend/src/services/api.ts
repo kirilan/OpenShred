@@ -21,7 +21,9 @@ import type {
   ScanHistoryPage,
 } from '@/types'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// Use empty string for production (nginx proxies /api, /auth, etc.)
+// Use full URL for local Vite dev server (e.g., 'http://localhost:8000')
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 const api = axios.create({
   baseURL: API_URL,

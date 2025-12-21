@@ -1,10 +1,9 @@
 #!/bin/bash
 set -e
 
-echo "Starting backend entrypoint..."
+echo "Starting worker entrypoint..."
 
 # Extract database connection info from DATABASE_URL
-# Format: postgresql://user:password@host:port/dbname
 DB_HOST=$(echo $DATABASE_URL | sed -n 's|.*@\([^:]*\):.*|\1|p')
 DB_USER=$(echo $DATABASE_URL | sed -n 's|.*://\([^:]*\):.*|\1|p')
 DB_PASS=$(echo $DATABASE_URL | sed -n 's|.*://[^:]*:\([^@]*\)@.*|\1|p')
@@ -18,17 +17,15 @@ until PGPASSWORD=$DB_PASS psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c '\q'
 done
 echo "✓ Database is ready"
 
-# Run Alembic migrations (creates/updates schema from SQLAlchemy models)
+# Wait for migrations to be applied (check for alembic_version table with a version)
 echo ""
-echo "Running database migrations..."
-alembic upgrade head
-if [ $? -eq 0 ]; then
-    echo "✓ Migrations complete"
-else
-    echo "✗ Migrations failed"
-    exit 1
-fi
+echo "Waiting for migrations to complete..."
+until PGPASSWORD=$DB_PASS psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1 FROM alembic_version LIMIT 1" 2>/dev/null | grep -q "1"; do
+  echo "  Migrations not yet applied - sleeping"
+  sleep 3
+done
+echo "✓ Migrations complete"
 
 echo ""
-echo "Starting application server..."
+echo "Starting worker..."
 exec "$@"
