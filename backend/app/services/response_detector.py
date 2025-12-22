@@ -93,6 +93,10 @@ class ResponseDetector:
         "acknowledge receipt",
         "received and will",
         "thank you for contacting",
+        "automatic reply",
+        "auto reply",
+        "auto-reply",
+        "automated response",
     ]
 
     REQUEST_INFO_KEYWORDS = [
@@ -109,6 +113,18 @@ class ResponseDetector:
         "confirm that you",
         "need to verify",
         "unable to verify",
+        # Instructions for removal/deletion
+        "removal instructions",
+        "opt-out instructions",
+        "deletion instructions",
+        "how to remove",
+        "how to delete",
+        "to remove your",
+        "to delete your",
+        "follow these steps",
+        "complete the process",
+        "to opt out",
+        "opt out by",
     ]
 
     def __init__(self):

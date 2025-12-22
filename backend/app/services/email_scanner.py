@@ -27,7 +27,7 @@ class EmailScanner:
         This method scans:
         1. Received emails from all domains (existing functionality)
         2. Sent emails to known broker domains/privacy emails (new)
-        3. Auto-creates deletion requests from discovered sent emails (new)
+        3. Auto-creates deletion requests from ALL discovered broker emails (both sent and received)
         """
 
         # Get all known brokers
@@ -39,8 +39,9 @@ class EmailScanner:
         # Scan sent emails to broker domains (new)
         sent_scans = self._scan_sent_broker_emails(user, days_back, max_emails, all_brokers)
 
-        # Auto-create deletion requests from discovered sent emails (new)
-        self._auto_create_deletion_requests(user, sent_scans)
+        # Auto-create deletion requests from ALL discovered broker emails (sent + received)
+        all_broker_scans = [s for s in received_scans + sent_scans if s.broker_id]
+        self._auto_create_deletion_requests(user, all_broker_scans)
 
         # Update user's last scan timestamp
         user.last_scan_at = datetime.now()
@@ -76,6 +77,28 @@ class EmailScanner:
             )
 
             if existing:
+                # If existing scan doesn't have a broker, try to re-match against current broker list
+                # This handles the case where emails were scanned before brokers were added
+                if not existing.broker_id and all_brokers:
+                    broker, confidence, notes = self.detector.detect_broker(
+                        existing.sender_email,
+                        existing.sender_domain,
+                        existing.subject or "",
+                        "",  # We don't have body_html stored
+                        existing.body_preview or "",
+                        all_brokers,
+                    )
+
+                    if broker:
+                        # Update the existing scan with broker match
+                        existing.broker_id = broker.id
+                        existing.is_broker_email = True
+                        existing.confidence_score = confidence
+                        existing.classification_notes = notes
+                        print(
+                            f"Re-matched email '{existing.subject[:50]}...' to broker '{broker.name}'"
+                        )
+
                 scans.append(existing)
                 continue
 
@@ -190,6 +213,28 @@ class EmailScanner:
             )
 
             if existing:
+                # If existing scan doesn't have a broker, try to re-match against current broker list
+                # This handles the case where emails were scanned before brokers were added
+                if not existing.broker_id and all_brokers:
+                    broker, confidence, notes = self.detector.detect_broker(
+                        existing.sender_email,
+                        existing.sender_domain,
+                        existing.subject or "",
+                        "",  # We don't have body_html stored
+                        existing.body_preview or "",
+                        all_brokers,
+                    )
+
+                    if broker:
+                        # Update the existing scan with broker match
+                        existing.broker_id = broker.id
+                        existing.is_broker_email = True
+                        existing.confidence_score = confidence
+                        existing.classification_notes = notes
+                        print(
+                            f"Re-matched email '{existing.subject[:50]}...' to broker '{broker.name}'"
+                        )
+
                 scans.append(existing)
                 continue
 
@@ -267,23 +312,24 @@ class EmailScanner:
 
         return scans
 
-    def _auto_create_deletion_requests(self, user: User, sent_scans: list[EmailScan]) -> None:
+    def _auto_create_deletion_requests(self, user: User, broker_scans: list[EmailScan]) -> None:
         """
-        Auto-create deletion requests from discovered sent emails
+        Auto-create deletion requests from discovered broker emails (sent or received)
 
-        For each sent email to a broker:
-        1. Check if deletion request already exists
-        2. Analyze email thread for responses
-        3. Determine status based on response classification
-        4. Create DeletionRequest with source='auto_discovered'
+        For each broker email:
+        1. Check if deletion request already exists (including manually deleted ones)
+        2. Skip if manually deleted (user explicitly removed it)
+        3. Analyze email thread for responses
+        4. Determine status based on email direction and response classification
+        5. Create DeletionRequest with source='auto_discovered'
         """
 
-        for scan in sent_scans:
+        for scan in broker_scans:
             # Skip if not linked to a broker
             if not scan.broker_id:
                 continue
 
-            # Check for existing deletion request
+            # Check for existing deletion request (including soft-deleted)
             existing_request = (
                 self.db.query(DeletionRequest)
                 .filter(
@@ -294,13 +340,28 @@ class EmailScanner:
             )
 
             if existing_request:
+                # If manually deleted, respect user's decision and don't auto-recreate
+                if existing_request.deleted_at is not None:
+                    continue
+
                 # Update thread_id if not already set
                 if not existing_request.gmail_thread_id and scan.gmail_thread_id:
                     existing_request.gmail_thread_id = scan.gmail_thread_id
                 continue
 
-            # Analyze thread for responses to determine status
-            status = self._analyze_thread_status(user, scan.gmail_thread_id, scan.received_date)
+            # Determine status based on email direction
+            if scan.email_direction == "sent":
+                # For sent emails, analyze thread for responses
+                status = self._analyze_thread_status(user, scan.gmail_thread_id, scan.received_date)
+                sent_at = scan.received_date
+                gmail_sent_message_id = scan.gmail_message_id
+            else:
+                # For received emails, analyze if this is a response to a deletion request
+                # If it looks like a response, set status accordingly
+                # Otherwise, mark as pending (no email sent yet by us)
+                status = self._analyze_received_email_status(scan)
+                sent_at = None
+                gmail_sent_message_id = None
 
             # Create auto-discovered deletion request
             request = DeletionRequest(
@@ -308,14 +369,82 @@ class EmailScanner:
                 broker_id=scan.broker_id,
                 status=status,
                 source="auto_discovered",
-                gmail_sent_message_id=scan.gmail_message_id,
+                gmail_sent_message_id=gmail_sent_message_id,
                 gmail_thread_id=scan.gmail_thread_id,
-                sent_at=scan.received_date,
+                sent_at=sent_at,
                 generated_email_subject=scan.subject,
                 generated_email_body=scan.body_preview,
             )
 
             self.db.add(request)
+            self.db.flush()  # Flush to get the request ID
+
+            # If this was a received email that looks like a response, create BrokerResponse
+            if scan.email_direction == "received" and status != RequestStatus.PENDING:
+                self._create_broker_response_from_scan(request, scan)
+
+    def _create_broker_response_from_scan(
+        self, request: DeletionRequest, scan: EmailScan
+    ) -> None:
+        """
+        Create a BrokerResponse record from an EmailScan
+
+        This links the detected email to the deletion request so it appears in the thread.
+        """
+        from app.models.broker_response import BrokerResponse, ResponseType
+
+        # Classify the response
+        response_type, confidence = self.response_detector.detect_response_type(
+            scan.subject or "", scan.body_preview or ""
+        )
+
+        # Create the broker response record
+        response = BrokerResponse(
+            user_id=request.user_id,
+            deletion_request_id=request.id,
+            gmail_message_id=scan.gmail_message_id,
+            gmail_thread_id=scan.gmail_thread_id,
+            sender_email=scan.sender_email,
+            subject=scan.subject,
+            body_text=scan.body_preview,
+            received_date=scan.received_date,
+            response_type=response_type,
+            confidence_score=confidence,
+            matched_by="auto_discovered",
+            is_processed=True,
+        )
+
+        self.db.add(response)
+
+    def _analyze_received_email_status(self, scan: EmailScan) -> RequestStatus:
+        """
+        Analyze a received broker email to determine if it's a response to a deletion request
+
+        Uses ResponseDetector to classify the email. If it looks like a response to
+        a deletion request (confirmation, rejection, etc.), returns appropriate status.
+        Otherwise returns PENDING (indicating we haven't sent a request yet).
+        """
+        from app.models.broker_response import ResponseType
+
+        # Analyze the email content using ResponseDetector
+        response_type, confidence = self.response_detector.detect_response_type(
+            scan.subject or "", scan.body_preview or ""
+        )
+
+        # If high confidence that this is a response to a deletion request
+        if confidence >= 0.6:
+            if response_type == ResponseType.CONFIRMATION:
+                return RequestStatus.CONFIRMED
+            elif response_type == ResponseType.REJECTION:
+                return RequestStatus.REJECTED
+            # For acknowledgment, info_request, or unknown - treat as sent
+            # (implies a deletion request was sent outside the system)
+            else:
+                return RequestStatus.SENT
+
+        # Low confidence or doesn't look like a response - mark as pending
+        # (probably just a marketing email or notification)
+        return RequestStatus.PENDING
 
     def _analyze_thread_status(
         self, user: User, thread_id: str | None, sent_date: datetime | None

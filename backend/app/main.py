@@ -37,6 +37,23 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Data Deletion Assistant API")
     init_db()
     logger.info("Database initialized")
+
+    # Sync brokers on startup
+    try:
+        from app.database import SessionLocal
+        from app.services.broker_service import BrokerService
+
+        db = SessionLocal()
+        try:
+            service = BrokerService(db)
+            count = service.load_brokers_from_json()
+            total = len(service.get_all_brokers())
+            logger.info(f"Broker sync completed: {count} brokers added, {total} total brokers")
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Failed to sync brokers on startup: {str(e)}")
+
     yield
     logger.info("Shutting down Data Deletion Assistant API")
 

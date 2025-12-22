@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 
 from app.celery_app import celery_app
@@ -12,6 +13,8 @@ from app.services.email_scanner import EmailScanner
 from app.services.gmail_service import GmailService
 from app.services.response_detector import ResponseDetector
 from app.services.response_matcher import ResponseMatcher
+
+logger = logging.getLogger(__name__)
 
 
 def _parse_email_date(date_str: str):
@@ -494,6 +497,55 @@ def scan_all_users_for_responses(self):
             import logging
 
             logging.error(f"Daily scan failed after {retry_count} retries: {str(exc)}")
+            self.update_state(state="FAILURE", meta={"error": str(exc)})
+            raise
+
+    finally:
+        if db:
+            db.close()
+
+
+@celery_app.task(bind=True, max_retries=3)
+def sync_brokers_task(self):
+    """
+    Background task to sync brokers from JSON file to database.
+
+    Runs daily to ensure broker list is up-to-date.
+    Retries up to 3 times on failure.
+    """
+    db = SessionLocal()
+
+    try:
+        logger.info("Starting daily broker sync")
+        self.update_state(state="PROGRESS", meta={"status": "Syncing brokers from JSON file"})
+
+        service = BrokerService(db)
+        count = service.load_brokers_from_json()
+        total = len(service.get_all_brokers())
+
+        logger.info(f"Broker sync completed: {count} brokers added, {total} total brokers")
+
+        return {
+            "status": "completed",
+            "brokers_added": count,
+            "total_brokers": total,
+            "synced_at": datetime.utcnow().isoformat(),
+        }
+
+    except Exception as exc:
+        logger.error(f"Broker sync failed: {str(exc)}")
+
+        # Retry with exponential backoff
+        retry_count = self.request.retries
+        if retry_count < self.max_retries:
+            # Exponential backoff: 5min, 15min, 30min
+            countdown = 5 * 60 * (3**retry_count)
+            logger.info(
+                f"Broker sync failed, retrying in {countdown}s ({countdown / 60} min) - attempt {retry_count + 1}/{self.max_retries}"
+            )
+            raise self.retry(exc=exc, countdown=countdown)
+        else:
+            logger.error(f"Broker sync failed after {retry_count} retries: {str(exc)}")
             self.update_state(state="FAILURE", meta={"error": str(exc)})
             raise
 

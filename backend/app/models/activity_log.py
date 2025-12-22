@@ -13,6 +13,7 @@ class ActivityType(str, enum.Enum):
 
     REQUEST_CREATED = "request_created"
     REQUEST_SENT = "request_sent"
+    REQUEST_DELETED = "request_deleted"
     RESPONSE_RECEIVED = "response_received"
     RESPONSE_SCANNED = "response_scanned"
     EMAIL_SCANNED = "email_scanned"

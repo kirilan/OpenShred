@@ -29,4 +29,8 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.email_tasks.scan_all_users_for_responses",
         "schedule": crontab(hour=2, minute=0),  # Run at 2 AM daily
     },
+    "sync-brokers-daily": {
+        "task": "app.tasks.email_tasks.sync_brokers_task",
+        "schedule": crontab(hour=1, minute=0),  # Run at 1 AM daily
+    },
 }

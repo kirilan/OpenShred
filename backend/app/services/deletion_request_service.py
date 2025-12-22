@@ -21,10 +21,14 @@ class DeletionRequestService:
     ) -> DeletionRequest:
         """Create a deletion request for a specific broker"""
 
-        # Check if request already exists
+        # Check if active request already exists (ignore soft-deleted ones)
         existing = (
             self.db.query(DeletionRequest)
-            .filter(DeletionRequest.user_id == user.id, DeletionRequest.broker_id == broker.id)
+            .filter(
+                DeletionRequest.user_id == user.id,
+                DeletionRequest.broker_id == broker.id,
+                DeletionRequest.deleted_at.is_(None),
+            )
             .first()
         )
 
@@ -41,6 +45,7 @@ class DeletionRequestService:
             user_id=user.id,
             broker_id=broker.id,
             status=RequestStatus.PENDING,
+            source="manual",
             generated_email_subject=subject,
             generated_email_body=body,
         )
@@ -52,10 +57,10 @@ class DeletionRequestService:
         return request
 
     def get_user_requests(self, user_id: str) -> list[DeletionRequest]:
-        """Get all deletion requests for a user"""
+        """Get all active (non-deleted) deletion requests for a user"""
         return (
             self.db.query(DeletionRequest)
-            .filter(DeletionRequest.user_id == user_id)
+            .filter(DeletionRequest.user_id == user_id, DeletionRequest.deleted_at.is_(None))
             .order_by(DeletionRequest.created_at.desc())
             .all()
         )

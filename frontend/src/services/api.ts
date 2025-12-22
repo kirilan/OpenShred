@@ -197,6 +197,11 @@ export const requestsApi = {
     const response = await api.get<ThreadEmail[]>(`/requests/${requestId}/thread`)
     return response.data
   },
+
+  delete: async (requestId: string) => {
+    const response = await api.delete<{ message: string }>(`/requests/${requestId}`)
+    return response.data
+  },
 }
 
 // Tasks API

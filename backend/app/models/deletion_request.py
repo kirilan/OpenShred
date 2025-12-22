@@ -47,6 +47,9 @@ class DeletionRequest(Base):
     # Notes
     notes = Column(Text, nullable=True)
 
+    # Soft delete support
+    deleted_at = Column(DateTime, nullable=True, index=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

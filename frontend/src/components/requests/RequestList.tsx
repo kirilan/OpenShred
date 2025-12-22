@@ -30,7 +30,8 @@ import {
   XCircle,
   AlertCircle,
   Inbox,
-  MessageCircle
+  MessageCircle,
+  Trash2
 } from 'lucide-react'
 
 export function RequestList() {
@@ -53,6 +54,8 @@ export function RequestList() {
   const [scanErrorMessage, setScanErrorMessage] = useState<string | null>(null)
   const [permissionError, setPermissionError] = useState(false)
   const [createWarning, setCreateWarning] = useState<string | null>(null)
+  const [deleteConfirmRequest, setDeleteConfirmRequest] = useState<DeletionRequest | null>(null)
+  const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null)
 
   // Create a map of broker IDs to broker names for quick lookup
   const brokerMap = new Map(brokers?.map(b => [b.id, b.name]) || [])
@@ -154,6 +157,24 @@ export function RequestList() {
       setAiErrorMessage(error.response?.data?.detail || 'AI classification failed.')
     } finally {
       setAiProcessingRequestId(null)
+    }
+  }
+
+  const handleDeleteRequest = async (requestId: string) => {
+    setDeletingRequestId(requestId)
+    try {
+      const { requestsApi } = await import('@/services/api')
+      await requestsApi.delete(requestId)
+      await refetch() // Refresh the list to remove deleted request
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'stats'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'timeline'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'broker-ranking'] })
+      setDeleteConfirmRequest(null)
+    } catch (error: any) {
+      console.error('Failed to delete request:', error)
+    } finally {
+      setDeletingRequestId(null)
     }
   }
 
@@ -296,6 +317,8 @@ export function RequestList() {
               isAiProcessing={aiProcessingRequestId === request.id}
               aiErrorMessage={aiErrorRequestId === request.id ? aiErrorMessage : null}
               responses={responsesByRequest.get(request.id) || []}
+              onDelete={() => setDeleteConfirmRequest(request)}
+              isDeleting={deletingRequestId === request.id}
             />
           ))}
         </div>
@@ -361,6 +384,54 @@ export function RequestList() {
           </Card>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmRequest && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="max-w-md">
+            <CardHeader>
+              <CardTitle>Delete Deletion Request?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete the deletion request for{' '}
+                <span className="font-semibold">
+                  {brokerMap.get(deleteConfirmRequest.broker_id) || 'this broker'}
+                </span>
+                ?
+              </p>
+              <p className="text-sm text-muted-foreground">
+                This action cannot be undone. The request will not be auto-created again during future scans.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDeleteRequest(deleteConfirmRequest.id)}
+                  disabled={deletingRequestId === deleteConfirmRequest.id}
+                  className="flex-1"
+                >
+                  {deletingRequestId === deleteConfirmRequest.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteConfirmRequest(null)}
+                  disabled={deletingRequestId === deleteConfirmRequest.id}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
@@ -395,7 +466,9 @@ function RequestCard({
   onAiAssist,
   isAiProcessing,
   aiErrorMessage,
-  responses
+  responses,
+  onDelete,
+  isDeleting
 }: {
   request: DeletionRequest
   brokerName: string
@@ -406,6 +479,8 @@ function RequestCard({
   isAiProcessing: boolean
   aiErrorMessage: string | null
   responses: BrokerResponse[]
+  onDelete: () => void
+  isDeleting: boolean
 }) {
   const classifyResponse = useClassifyResponse()
   const statusConfig = {
@@ -672,6 +747,16 @@ function RequestCard({
                   {showThread ? 'Hide thread' : 'View thread'}
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onDelete}
+                disabled={isDeleting}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
+              </Button>
             </div>
 
             {isRateLimited && nextRetryDate && (

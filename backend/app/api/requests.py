@@ -158,6 +158,55 @@ def update_request_status(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.delete("/{request_id}")
+def delete_deletion_request(
+    request_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Soft delete a deletion request
+
+    This prevents the request from being auto-created again during future scans.
+    """
+
+    service = DeletionRequestService(db)
+    activity_service = ActivityLogService(db)
+
+    try:
+        req = service.get_request_by_id(request_id)
+
+        if not req:
+            raise HTTPException(status_code=404, detail="Request not found")
+
+        if str(req.user_id) != str(current_user.id):
+            raise HTTPException(status_code=403, detail="Not authorized to delete this request")
+
+        # Get broker for logging
+        broker_service = BrokerService(db)
+        broker = broker_service.get_broker_by_id(str(req.broker_id))
+
+        # Soft delete the request
+        req.deleted_at = datetime.utcnow()
+        db.commit()
+
+        # Log activity
+        activity_service.log_activity(
+            user_id=str(current_user.id),
+            activity_type=ActivityType.REQUEST_DELETED,
+            message=f"Deleted deletion request for {broker.name if broker else 'broker'}",
+            broker_id=str(req.broker_id),
+            deletion_request_id=request_id,
+        )
+
+        return {"message": "Request deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.get("/{request_id}/email-preview", response_model=EmailPreview)
 def preview_deletion_email(
     request_id: str,
