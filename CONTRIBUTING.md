@@ -254,6 +254,21 @@ Pre-commit hooks run automatically on `git commit`. To run manually:
 pre-commit run --all-files
 ```
 
+### Commit Messages
+
+Use Conventional Commits for clarity and changelog automation:
+
+- Format: `type(scope): summary` or `type: summary`
+- Common types: `feat`, `fix`, `docs`, `chore`, `style`, `test`, `refactor`, `ci`
+- Keep the summary imperative and under ~72 characters
+
+Examples:
+```text
+feat(api): add broker sync endpoint
+fix(frontend): handle empty scan history
+docs: clarify production setup
+```
+
 ### Database Migrations
 
 ```bash

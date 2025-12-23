@@ -91,7 +91,7 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 - Recent broker responses with type badges
 - Quick action shortcuts to key features
 
-- Task queue health widget exposes Celery worker status, queue depth, and refresh controls for all users
+- Task queue health widget exposes Celery worker status, queue depth, and refresh controls for admin users
 
 ### 🤖 **AI Assist (Per-User)**
 - Each user configures their own Gemini API key + model selection in Settings
@@ -217,6 +217,8 @@ To switch back to daily scheduling, adjust the Beat schedule in `backend/app/cel
 - **uv** - Python package manager (recommended for local development)
 - **Google Cloud Project** with Gmail API enabled (for full functionality)
 
+For Docker-only usage, you can skip Python, Node.js, and uv; they are only required for local development.
+
 > **Platform-specific instructions**: See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed Windows/Linux/macOS setup guides.
 
 ### Quick Start
@@ -308,7 +310,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 #### 3. Start the Application
 
 ```bash
-docker-compose up --build
+make dev  # or: docker compose up --build
 ```
 
 This will start:
@@ -326,9 +328,9 @@ This will start:
 - **API Docs**: http://localhost:8000/docs
 - **Health Check**: http://localhost:8000/health
 
-### 🌐 Production via Caddy Reverse Proxy
+### 🌐 Production via Caddy Reverse Proxy (Recommended)
 
-When you are ready to expose the app publicly:
+When you are ready to expose the app publicly, the preferred method is to use the built-in Caddy profile from `docker-compose.yml`:
 
 1. Set `ENVIRONMENT=production`, update `FRONTEND_URL` to `https://<your app hostname>`, and set `VITE_API_URL` to `https://<your API hostname>` inside `.env`.
 2. Provide `APP_HOSTNAME`, `API_HOSTNAME`, and `CADDY_ACME_EMAIL` so the proxy knows which domains to serve and which email to use for ACME.
@@ -339,7 +341,7 @@ When you are ready to expose the app publicly:
    ```
 5. Caddy (configured via `Caddyfile`) will terminate TLS on ports `80/443`, obtain certificates automatically, and forward traffic to the internal `frontend` and `backend` services while the FastAPI app locks CORS down to `FRONTEND_URL`.
 
-Switching `ENVIRONMENT` back to `development` lets you continue running entirely on `localhost` without the reverse proxy.
+If you already run your own reverse proxy and TLS termination, you can use `docker-compose.prod.yml` instead and expose only the frontend service (no Caddy).
 
 ### Local Development (without Docker)
 
@@ -465,7 +467,7 @@ make sync-requirements Regenerate requirements.txt from pyproject.toml
    - Timeline charts (requests sent vs confirmations)
    - Broker compliance ranking
    - Response type distribution
-3. View task queue health on the Dashboard (worker status, active tasks, queue depth)
+3. Admin users can view task queue health on the Dashboard (worker status, active tasks, queue depth)
 
 ---
 
@@ -524,10 +526,11 @@ make check             # Run all checks (lint + tests)
 
 The project uses multi-stage Docker builds with security-focused defaults:
 
-| File | Purpose | Target |
+| File / Profile | Purpose | Target |
 |------|---------|--------|
 | `docker-compose.yml` | Local development | `development` stage |
-| `docker-compose.prod.yml` | Production deployment | `production` stage |
+| `docker-compose.yml` (profile: `production`) | Production with Caddy reverse proxy (recommended) | `production` stage |
+| `docker-compose.prod.yml` | Production with external reverse proxy | `production` stage |
 
 **Security Features:**
 - All containers run as non-root user (`appuser` UID 1000)
@@ -542,9 +545,14 @@ BACKEND_PORT=8000     # FastAPI backend
 FRONTEND_PORT=3000    # Frontend (dev) / 80 (prod)
 ```
 
-**Building for Production:**
+**Building for Production (Caddy profile):**
 ```bash
-docker compose -f docker-compose.prod.yml up --build
+docker compose --profile production up -d --build
+```
+
+**Building for Production (external reverse proxy):**
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ### CI/CD Pipeline
@@ -672,7 +680,7 @@ OpenShred/
 - Keep `.env` file out of version control (`.gitignore` included)
 - Use HTTPS in production (configure Nginx SSL or use Caddy)
 - Regularly update dependencies for security patches
-- All users have access to all features - no admin promotion needed for normal operations
+- Most features are available to all users; admin access is required for task queue health and admin endpoints
 
 ---
 
@@ -738,7 +746,7 @@ If you encounter issues:
 
 **Feature Democratization**
 - 🎉 **All features now available to all authenticated users** - removed admin role requirements
-- All users can create/sync data brokers, view task queue health, and access all analytics
+- All users can create/sync data brokers and access analytics; admin users can view task queue health
 - Gemini API keys encrypted at rest per user with complete isolation
 - AI Assist fully per-user - your API key only classifies your responses
 - Updated test suite to reflect democratized feature access
@@ -768,7 +776,7 @@ If you encounter issues:
 - JWT auth guard on every API request
 - Manual broker entry UI with backend validation
 - Request timeline entries include Gmail rate-limit messaging
-- Task queue health widget for worker status and queue depth
+- Admin-only task queue health widget for worker status and queue depth
 
 **Developer Experience**
 - Frontend test suite with Vitest + React Testing Library + MSW
