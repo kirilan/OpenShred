@@ -5,6 +5,7 @@ import { LoginPage } from './components/auth/LoginPage'
 import { AuthCallback } from './components/auth/AuthCallback'
 import { PrivacyPolicy } from './components/legal/PrivacyPolicy'
 import { TermsOfService } from './components/legal/TermsOfService'
+import { PublicHome } from './components/public/PublicHome'
 import { Dashboard } from './components/dashboard/Dashboard'
 import { EmailScanner } from './components/emails/EmailScanner'
 import { BrokerList } from './components/brokers/BrokerList'
@@ -22,6 +23,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
+        <Route path="/" element={<PublicHome />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth-callback" element={<AuthCallback />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -30,7 +32,6 @@ function App() {
         {/* Protected routes - AuthGuard wraps Layout */}
         <Route element={<AuthGuard />}>
           <Route element={<Layout />}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/scan" element={<EmailScanner />} />
             <Route path="/emails" element={<Navigate to="/scan" replace />} />
@@ -45,7 +46,7 @@ function App() {
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )
