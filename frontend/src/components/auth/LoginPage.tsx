@@ -2,12 +2,18 @@ import { useLogin } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Seo } from '@/components/seo/Seo'
 
 export function LoginPage() {
   const { login } = useLogin()
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Seo
+        title="OpenShred Login"
+        description="Sign in to OpenShred to scan Gmail for data broker emails and manage deletion requests."
+        path="/login"
+      />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-secondary">

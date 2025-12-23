@@ -1,11 +1,17 @@
 import { Link } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
+import { Seo } from '@/components/seo/Seo'
 
 const supportEmail = import.meta.env.VITE_SUPPORT_EMAIL || 'support@example.com'
 
 export function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-background px-4 py-10">
+      <Seo
+        title="OpenShred Privacy Policy"
+        description="Read how OpenShred collects, uses, and protects data when you use the open-source data deletion assistant."
+        path="/privacy"
+      />
       <div className="mx-auto max-w-3xl space-y-6">
         <header className="space-y-3">
           <p className="text-sm text-muted-foreground">OpenShred</p>

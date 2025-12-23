@@ -1,11 +1,17 @@
 import { Link } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
+import { Seo } from '@/components/seo/Seo'
 
 const supportEmail = import.meta.env.VITE_SUPPORT_EMAIL || 'support@example.com'
 
 export function TermsOfService() {
   return (
     <div className="min-h-screen bg-background px-4 py-10">
+      <Seo
+        title="OpenShred Terms of Service"
+        description="Review the OpenShred terms for using the open-source Gmail data deletion assistant."
+        path="/terms"
+      />
       <div className="mx-auto max-w-3xl space-y-6">
         <header className="space-y-3">
           <p className="text-sm text-muted-foreground">OpenShred</p>

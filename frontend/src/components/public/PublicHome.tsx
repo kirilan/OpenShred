@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Seo } from '@/components/seo/Seo'
 
 const supportEmail = import.meta.env.VITE_SUPPORT_EMAIL || 'support@example.com'
 
@@ -79,6 +80,11 @@ export function PublicHome() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="OpenShred — Open-source data deletion assistant"
+        description="OpenShred is an open-source data deletion assistant for Gmail. Identify data broker emails, draft GDPR/CCPA requests, and track responses."
+        path="/"
+      />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <script
         type="application/ld+json"
