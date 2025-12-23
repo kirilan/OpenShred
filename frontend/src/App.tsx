@@ -3,6 +3,8 @@ import { Layout } from './components/layout/Layout'
 import { AuthGuard } from './components/auth/AuthGuard'
 import { LoginPage } from './components/auth/LoginPage'
 import { AuthCallback } from './components/auth/AuthCallback'
+import { PrivacyPolicy } from './components/legal/PrivacyPolicy'
+import { TermsOfService } from './components/legal/TermsOfService'
 import { Dashboard } from './components/dashboard/Dashboard'
 import { EmailScanner } from './components/emails/EmailScanner'
 import { BrokerList } from './components/brokers/BrokerList'
@@ -22,6 +24,8 @@ function App() {
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth-callback" element={<AuthCallback />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
 
         {/* Protected routes - AuthGuard wraps Layout */}
         <Route element={<AuthGuard />}>

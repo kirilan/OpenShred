@@ -1,5 +1,6 @@
 import { useLogin } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
+import { Link } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function LoginPage() {
@@ -41,6 +42,17 @@ export function LoginPage() {
           </Button>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             We'll scan your Gmail for data broker emails and help you request data deletion
+          </p>
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            By continuing, you agree to our{' '}
+            <Link className="text-primary hover:underline" to="/terms">
+              Terms
+            </Link>{' '}
+            and{' '}
+            <Link className="text-primary hover:underline" to="/privacy">
+              Privacy Policy
+            </Link>
+            .
           </p>
         </CardContent>
       </Card>
