@@ -7,7 +7,7 @@ A comprehensive web application that scans your Gmail inbox for data broker comm
 
 [Live demo](https://app.dimitroff.work)
 
-![OpenShred demo](https://youtu.be/r8Quc-C7IsY?si=45P1UopaH-G_L43D)
+![OpenShred demo](https://raw.githubusercontent.com/kirilan/OpenShred/refs/heads/main/demo/anti-spam.gif)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
