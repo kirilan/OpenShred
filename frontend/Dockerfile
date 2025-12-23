@@ -18,6 +18,11 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+ARG VITE_API_URL
+ARG VITE_SUPPORT_EMAIL
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_SUPPORT_EMAIL=$VITE_SUPPORT_EMAIL
+
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 

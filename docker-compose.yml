@@ -112,6 +112,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: production
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_SUPPORT_EMAIL: ${VITE_SUPPORT_EMAIL}
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:

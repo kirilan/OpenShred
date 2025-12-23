@@ -98,6 +98,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: production
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_SUPPORT_EMAIL: ${VITE_SUPPORT_EMAIL}
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-80}:80"
