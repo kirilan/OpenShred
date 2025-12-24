@@ -11,6 +11,7 @@ from app.database import Base
 class RequestStatus(str, enum.Enum):
     PENDING = "pending"
     SENT = "sent"
+    ACTION_REQUIRED = "action_required"
     CONFIRMED = "confirmed"
     REJECTED = "rejected"
 

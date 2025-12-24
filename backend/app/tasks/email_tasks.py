@@ -228,7 +228,10 @@ def scan_for_responses_task(self, user_id: str, days_back: int = 7, source: str 
         sent_requests = (
             db.query(DeletionRequest)
             .filter(
-                DeletionRequest.user_id == user_id, DeletionRequest.status == RequestStatus.SENT
+                DeletionRequest.user_id == user_id,
+                DeletionRequest.status.in_(
+                    [RequestStatus.SENT, RequestStatus.ACTION_REQUIRED]
+                ),
             )
             .all()
         )
@@ -366,7 +369,10 @@ def scan_for_responses_task(self, user_id: str, days_back: int = 7, source: str 
                         db.query(DeletionRequest).filter(DeletionRequest.id == request_id).first()
                     )
 
-                    if request and request.status == RequestStatus.SENT:
+                    if request and request.status in (
+                        RequestStatus.SENT,
+                        RequestStatus.ACTION_REQUIRED,
+                    ):
                         if response_type == ResponseType.CONFIRMATION:
                             request.status = RequestStatus.CONFIRMED
                             request.confirmed_at = datetime.now()
@@ -375,6 +381,10 @@ def scan_for_responses_task(self, user_id: str, days_back: int = 7, source: str 
                             request.status = RequestStatus.REJECTED
                             request.rejected_at = datetime.now()
                             requests_updated += 1
+                        elif response_type == ResponseType.ACTION_REQUIRED:
+                            if request.status != RequestStatus.ACTION_REQUIRED:
+                                request.status = RequestStatus.ACTION_REQUIRED
+                                requests_updated += 1
 
             # Mark as processed
             broker_response.is_processed = True
@@ -485,7 +495,11 @@ def scan_all_users_for_responses(self):
         users_with_sent = (
             db.query(User.id)
             .join(DeletionRequest, DeletionRequest.user_id == User.id)
-            .filter(DeletionRequest.status == RequestStatus.SENT)
+            .filter(
+                DeletionRequest.status.in_(
+                    [RequestStatus.SENT, RequestStatus.ACTION_REQUIRED]
+                )
+            )
             .distinct()
             .all()
         )

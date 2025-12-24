@@ -98,7 +98,7 @@ export interface ScanResult {
 }
 
 // Deletion request types
-export type RequestStatus = 'pending' | 'sent' | 'confirmed' | 'rejected'
+export type RequestStatus = 'pending' | 'sent' | 'action_required' | 'confirmed' | 'rejected'
 
 export interface DeletionRequest {
   id: string
@@ -231,7 +231,13 @@ export interface GeneratedEmail {
 }
 
 // Broker response types
-export type BrokerResponseType = 'confirmation' | 'rejection' | 'acknowledgment' | 'request_info' | 'unknown'
+export type BrokerResponseType =
+  | 'confirmation'
+  | 'rejection'
+  | 'acknowledgment'
+  | 'action_required'
+  | 'request_info'
+  | 'unknown'
 
 export interface BrokerResponse {
   id: string

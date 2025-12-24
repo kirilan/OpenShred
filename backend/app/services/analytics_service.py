@@ -48,8 +48,8 @@ class AnalyticsService:
             stats["total_requests"] += count
             if status == RequestStatus.CONFIRMED:
                 stats["confirmed_deletions"] = count
-            elif status == RequestStatus.SENT:
-                stats["sent_requests"] = count
+            elif status in (RequestStatus.SENT, RequestStatus.ACTION_REQUIRED):
+                stats["sent_requests"] += count
             elif status == RequestStatus.REJECTED:
                 stats["rejected"] = count
             elif status == RequestStatus.PENDING:

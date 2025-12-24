@@ -15,6 +15,7 @@ const responseTypeConfig: Record<string, { color: string; bg: string }> = {
   confirmation: { color: 'text-green-600', bg: 'bg-green-50' },
   rejection: { color: 'text-red-600', bg: 'bg-red-50' },
   acknowledgment: { color: 'text-blue-600', bg: 'bg-blue-50' },
+  action_required: { color: 'text-orange-600', bg: 'bg-orange-50' },
   request_info: { color: 'text-yellow-600', bg: 'bg-yellow-50' },
   unknown: { color: 'text-gray-600', bg: 'bg-gray-50' }
 }
@@ -31,7 +32,8 @@ export function Dashboard() {
   const { data: taskHealth, isLoading: taskHealthLoading, refetch: refetchTaskHealth } = useTaskHealth(true)
 
   const pendingRequests = requests?.filter((r) => r.status === 'pending').length || 0
-  const sentRequests = requests?.filter((r) => r.status === 'sent').length || 0
+  const sentRequests =
+    requests?.filter((r) => r.status === 'sent' || r.status === 'action_required').length || 0
   const confirmedRequests = requests?.filter((r) => r.status === 'confirmed').length || 0
   const recentResponses = responses?.slice(0, 3) || []
   const requestBrokerIds = new Set(requests?.map((request) => request.broker_id) || [])

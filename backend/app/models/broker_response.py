@@ -14,6 +14,7 @@ class ResponseType(str, enum.Enum):
     CONFIRMATION = "confirmation"  # Data deleted
     REJECTION = "rejection"  # Unable to delete, no records found, etc.
     ACKNOWLEDGMENT = "acknowledgment"  # Request received, processing
+    ACTION_REQUIRED = "action_required"  # Broker needs user action or verification
     REQUEST_INFO = "request_info"  # Need more information to verify identity
     UNKNOWN = "unknown"  # Unable to classify
 

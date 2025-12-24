@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 VALID_FRAMEWORKS = ["GDPR", "CCPA", "GDPR/CCPA"]
 
 # Valid status values
-VALID_STATUSES = ["pending", "sent", "confirmed", "rejected"]
+VALID_STATUSES = ["pending", "sent", "action_required", "confirmed", "rejected"]
 
 
 class DeletionRequestCreate(BaseModel):

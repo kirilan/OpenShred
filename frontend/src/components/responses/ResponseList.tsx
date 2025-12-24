@@ -9,6 +9,7 @@ import {
   XCircle,
   Clock,
   AlertCircle,
+  AlertTriangle,
   HelpCircle,
   Loader2,
   RefreshCw,
@@ -20,6 +21,7 @@ const responseTypeConfig: Record<BrokerResponseType, { icon: any; color: string;
   confirmation: { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', label: 'Confirmation' },
   rejection: { icon: XCircle, color: 'text-red-600', bg: 'bg-red-50', label: 'Rejection' },
   acknowledgment: { icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50', label: 'Acknowledged' },
+  action_required: { icon: AlertTriangle, color: 'text-orange-600', bg: 'bg-orange-50', label: 'Action Required' },
   request_info: { icon: AlertCircle, color: 'text-yellow-600', bg: 'bg-yellow-50', label: 'Info Requested' },
   unknown: { icon: HelpCircle, color: 'text-gray-600', bg: 'bg-gray-50', label: 'Unknown' }
 }
@@ -133,6 +135,7 @@ export function ResponseList() {
               <option value="confirmation">Confirmations</option>
               <option value="rejection">Rejections</option>
               <option value="acknowledgment">Acknowledged</option>
+              <option value="action_required">Action Required</option>
               <option value="request_info">Info Requested</option>
               <option value="unknown">Unknown</option>
             </select>
@@ -276,7 +279,7 @@ function ResponseCard({ response }: { response: BrokerResponse }) {
             <div className="space-y-1 text-right">
               <p className="text-sm font-medium">Manual classification</p>
               <p className="text-xs text-muted-foreground">
-                Confirmation/Rejection will update the linked request status.
+                Action Required, Confirmation, and Rejection update the linked request status.
               </p>
             </div>
             <div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-end">
@@ -288,6 +291,7 @@ function ResponseCard({ response }: { response: BrokerResponse }) {
                 <option value="confirmation">Confirmation</option>
                 <option value="rejection">Rejection</option>
                 <option value="acknowledgment">Acknowledged</option>
+                <option value="action_required">Action Required</option>
                 <option value="request_info">Info Requested</option>
                 <option value="unknown">Unknown</option>
               </select>

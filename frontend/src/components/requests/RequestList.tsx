@@ -241,8 +241,10 @@ export function RequestList() {
     }
   }
 
-  // Get broker IDs that already have an active (pending or sent) request
-  const activeRequests = (requests || []).filter(r => r.status === 'pending' || r.status === 'sent')
+  // Get broker IDs that already have an active (pending, sent, or action required) request
+  const activeRequests = (requests || []).filter(
+    (r) => r.status === 'pending' || r.status === 'sent' || r.status === 'action_required'
+  )
   const existingBrokerIds = new Set(activeRequests.map(r => r.broker_id))
 
   // Get unique brokers from email scans that don't have requests yet
@@ -537,6 +539,7 @@ const responseTypeConfig: Record<BrokerResponseType, { label: string; color: str
   confirmation: { label: 'Confirmation', color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle },
   rejection: { label: 'Rejection', color: 'text-red-600', bg: 'bg-red-50', icon: XCircle },
   acknowledgment: { label: 'Acknowledged', color: 'text-blue-600', bg: 'bg-blue-50', icon: Clock },
+  action_required: { label: 'Action Required', color: 'text-orange-600', bg: 'bg-orange-50', icon: AlertTriangle },
   request_info: { label: 'Info Requested', color: 'text-yellow-600', bg: 'bg-yellow-50', icon: AlertCircle },
   unknown: { label: 'Unknown', color: 'text-gray-600', bg: 'bg-gray-50', icon: HelpCircle },
 }
@@ -568,6 +571,7 @@ function RequestCard({
   const statusConfig = {
     pending: { icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-500/10', label: 'Pending' },
     sent: { icon: Mail, color: 'text-blue-500', bg: 'bg-blue-500/10', label: 'Sent' },
+    action_required: { icon: AlertTriangle, color: 'text-orange-500', bg: 'bg-orange-500/10', label: 'Action Required' },
     response_received: { icon: MessageSquare, color: 'text-cyan-600', bg: 'bg-cyan-500/10', label: 'Response received' },
     confirmed: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/10', label: 'Confirmed' },
     rejected: { icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-500/10', label: 'Rejected' },
@@ -582,7 +586,13 @@ function RequestCard({
     })
   }, [responses])
   const hasResponse = Boolean(latestResponse)
-  const statusKey = hasResponse && request.status === 'sent' ? 'response_received' : request.status
+  const hasActionRequired = responses.some((response) => response.response_type === 'action_required')
+  const statusKey =
+    hasActionRequired && request.status === 'sent'
+      ? 'action_required'
+      : hasResponse && request.status === 'sent'
+        ? 'response_received'
+        : request.status
   const config = statusConfig[statusKey as keyof typeof statusConfig] || statusConfig.pending
   const StatusIcon = config.icon
   const responseConfig = latestResponse ? responseTypeConfig[latestResponse.response_type] : null
@@ -902,14 +912,32 @@ function RequestCard({
                 ) : (
                   <div className="space-y-3">
                     {threadEmails.map((email) => {
-                      const responseTypeConfig = email.response_type ?
-                        {
-                          confirmation: { label: 'Confirmation', color: 'text-green-600', bg: 'bg-green-50' },
-                          rejection: { label: 'Rejection', color: 'text-red-600', bg: 'bg-red-50' },
-                          acknowledgment: { label: 'Acknowledged', color: 'text-blue-600', bg: 'bg-blue-50' },
-                          request_info: { label: 'Info Requested', color: 'text-yellow-600', bg: 'bg-yellow-50' },
-                          unknown: { label: 'Unknown', color: 'text-gray-600', bg: 'bg-gray-50' },
-                        }[email.response_type] : null
+                      const responseTypeConfig = email.response_type
+                        ? {
+                            confirmation: {
+                              label: 'Confirmation',
+                              color: 'text-green-600',
+                              bg: 'bg-green-50',
+                            },
+                            rejection: { label: 'Rejection', color: 'text-red-600', bg: 'bg-red-50' },
+                            acknowledgment: {
+                              label: 'Acknowledged',
+                              color: 'text-blue-600',
+                              bg: 'bg-blue-50',
+                            },
+                            action_required: {
+                              label: 'Action Required',
+                              color: 'text-orange-600',
+                              bg: 'bg-orange-50',
+                            },
+                            request_info: {
+                              label: 'Info Requested',
+                              color: 'text-yellow-600',
+                              bg: 'bg-yellow-50',
+                            },
+                            unknown: { label: 'Unknown', color: 'text-gray-600', bg: 'bg-gray-50' },
+                          }[email.response_type]
+                        : null
 
                       return (
                         <div key={email.id} className="rounded-lg border bg-muted/30 p-4 space-y-2">
@@ -1045,6 +1073,7 @@ function RequestCard({
                                 <option value="confirmation">Confirmation</option>
                                 <option value="rejection">Rejection</option>
                                 <option value="acknowledgment">Acknowledged</option>
+                                <option value="action_required">Action Required</option>
                                 <option value="request_info">Info Requested</option>
                                 <option value="unknown">Unknown</option>
                               </select>

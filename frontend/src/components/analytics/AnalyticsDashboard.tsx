@@ -26,6 +26,7 @@ const responseTypeLabels: Record<string, string> = {
   confirmation: 'Confirmation',
   rejection: 'Rejection',
   acknowledgment: 'Acknowledged',
+  action_required: 'Action Required',
   request_info: 'Info Requested',
   unknown: 'Unknown',
 }
@@ -43,7 +44,9 @@ export function AnalyticsDashboard() {
     responses?.flatMap((response) => (response.deletion_request_id ? [response.deletion_request_id] : [])) || []
   )
   const responseReceivedCount = requests?.filter(
-    (request) => request.status === 'sent' && responseRequestIds.has(request.id)
+    (request) =>
+      (request.status === 'sent' || request.status === 'action_required') &&
+      responseRequestIds.has(request.id)
   ).length || 0
   const sentAwaitingCount = requests?.filter(
     (request) => request.status === 'sent' && !responseRequestIds.has(request.id)

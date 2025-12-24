@@ -471,6 +471,8 @@ class EmailScanner:
                 return RequestStatus.CONFIRMED
             elif response_type == ResponseType.REJECTION:
                 return RequestStatus.REJECTED
+            elif response_type == ResponseType.ACTION_REQUIRED:
+                return RequestStatus.ACTION_REQUIRED
             # For acknowledgment, info_request, or unknown - treat as sent
             # (implies a deletion request was sent outside the system)
             else:
@@ -489,6 +491,7 @@ class EmailScanner:
         Looks at received responses in the thread and classifies them:
         - CONFIRMATION response → status = CONFIRMED
         - REJECTION response → status = REJECTED
+        - ACTION_REQUIRED response → status = ACTION_REQUIRED
         - ACKNOWLEDGMENT/REQUEST_INFO/UNKNOWN/No responses → status = SENT
         """
         from app.models.broker_response import ResponseType
@@ -530,6 +533,7 @@ class EmailScanner:
             return RequestStatus.SENT
 
         # Analyze each response with ResponseDetector
+        has_action_required = False
         for response in received_responses:
             response_type, confidence = self.response_detector.detect_response_type(
                 response["subject"], response["body"]
@@ -541,6 +545,11 @@ class EmailScanner:
                     return RequestStatus.CONFIRMED
                 elif response_type == ResponseType.REJECTION:
                     return RequestStatus.REJECTED
+                elif response_type == ResponseType.ACTION_REQUIRED:
+                    has_action_required = True
+
+        if has_action_required:
+            return RequestStatus.ACTION_REQUIRED
 
         # Default to SENT if no clear confirmation/rejection found
         return RequestStatus.SENT

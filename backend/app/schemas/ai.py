@@ -22,6 +22,7 @@ class AiResponseClassification(BaseModel):
         "confirmation",
         "rejection",
         "acknowledgment",
+        "action_required",
         "request_info",
         "unknown",
     ]

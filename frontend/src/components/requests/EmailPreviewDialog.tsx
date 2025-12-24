@@ -19,6 +19,7 @@ interface EmailPreviewDialogProps {
 const requestStatusConfig = {
   pending: { label: 'Pending', color: 'text-yellow-600', bg: 'bg-yellow-50' },
   sent: { label: 'Sent', color: 'text-blue-600', bg: 'bg-blue-50' },
+  action_required: { label: 'Action Required', color: 'text-orange-600', bg: 'bg-orange-50' },
   confirmed: { label: 'Confirmed', color: 'text-green-600', bg: 'bg-green-50' },
   rejected: { label: 'Rejected', color: 'text-red-600', bg: 'bg-red-50' },
 }
@@ -27,6 +28,7 @@ const responseTypeConfig: Record<BrokerResponseType, { label: string; color: str
   confirmation: { label: 'Confirmation', color: 'text-green-600', bg: 'bg-green-50' },
   rejection: { label: 'Rejection', color: 'text-red-600', bg: 'bg-red-50' },
   acknowledgment: { label: 'Acknowledged', color: 'text-blue-600', bg: 'bg-blue-50' },
+  action_required: { label: 'Action Required', color: 'text-orange-600', bg: 'bg-orange-50' },
   request_info: { label: 'Info Requested', color: 'text-yellow-600', bg: 'bg-yellow-50' },
   unknown: { label: 'Unknown', color: 'text-gray-600', bg: 'bg-gray-50' },
 }

@@ -10,7 +10,7 @@ class BrokerResponseBase(BaseModel):
     subject: str | None = None
     body_text: str | None = None
     received_date: datetime | None = None
-    response_type: str  # 'confirmation', 'rejection', 'acknowledgment', 'request_info', 'unknown'
+    response_type: str  # 'confirmation', 'rejection', 'acknowledgment', 'action_required', 'request_info', 'unknown'
     confidence_score: float | None = None
     matched_by: str | None = None
 

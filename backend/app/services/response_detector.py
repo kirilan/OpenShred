@@ -99,20 +99,52 @@ class ResponseDetector:
         "automated response",
     ]
 
+    ACTION_REQUIRED_KEYWORDS = [
+        # Identity verification (requires user action)
+        "verify your identity",
+        "confirm your identity",
+        "verify that you are",
+        "prove your identity",
+        "identity verification required",
+        "verification required",
+        "complete verification",
+        # Webform/online action required
+        "fill out form",
+        "complete the form",
+        "submit the form",
+        "complete your request online",
+        "visit our website to",
+        "go to our website",
+        "click the link below to",
+        "use our online form",
+        "online request form",
+        # Additional information required with urgency
+        "must provide",
+        "you must submit",
+        "required to complete",
+        "need you to",
+        "please provide the following",
+        "action required",
+        "action needed",
+        "respond to this email",
+        "reply with",
+        "send us",
+        # Document requests
+        "provide documentation",
+        "upload documents",
+        "attach a copy",
+        "send proof of",
+        "proof of residency",
+        "government-issued id",
+        "driver's license",
+        "utility bill",
+    ]
+
     REQUEST_INFO_KEYWORDS = [
         "need more information",
         "need additional information",
-        "verify your identity",
-        "confirm your identity",
         "additional details",
         "provide more details",
-        "please provide",
-        "require verification",
-        "identity verification",
-        "verify that you are",
-        "confirm that you",
-        "need to verify",
-        "unable to verify",
         # Instructions for removal/deletion
         "removal instructions",
         "opt-out instructions",
@@ -132,6 +164,7 @@ class ResponseDetector:
         self.confirmation_pattern = self._compile_pattern(self.CONFIRMATION_KEYWORDS)
         self.rejection_pattern = self._compile_pattern(self.REJECTION_KEYWORDS)
         self.acknowledgment_pattern = self._compile_pattern(self.ACKNOWLEDGMENT_KEYWORDS)
+        self.action_required_pattern = self._compile_pattern(self.ACTION_REQUIRED_KEYWORDS)
         self.request_info_pattern = self._compile_pattern(self.REQUEST_INFO_KEYWORDS)
 
     def _compile_pattern(self, keywords: list) -> re.Pattern:
@@ -162,20 +195,30 @@ class ResponseDetector:
 
         # Count matches for each response type
         matches = {
+            ResponseType.ACTION_REQUIRED: len(self.action_required_pattern.findall(text)),
             ResponseType.CONFIRMATION: len(self.confirmation_pattern.findall(text)),
             ResponseType.REJECTION: len(self.rejection_pattern.findall(text)),
             ResponseType.ACKNOWLEDGMENT: len(self.acknowledgment_pattern.findall(text)),
             ResponseType.REQUEST_INFO: len(self.request_info_pattern.findall(text)),
         }
 
-        # Find the type with the most matches
-        max_matches = max(matches.values())
+        # Priority-based detection (Action Required should surface even when counts tie)
+        detected_type = ResponseType.UNKNOWN
+        for response_type in (
+            ResponseType.ACTION_REQUIRED,
+            ResponseType.CONFIRMATION,
+            ResponseType.REJECTION,
+            ResponseType.ACKNOWLEDGMENT,
+            ResponseType.REQUEST_INFO,
+        ):
+            if matches[response_type] > 0:
+                detected_type = response_type
+                break
 
-        if max_matches == 0:
+        if detected_type == ResponseType.UNKNOWN:
             return (ResponseType.UNKNOWN, 0.0)
 
-        # Get the response type with the most matches
-        detected_type = max(matches.items(), key=lambda x: x[1])[0]
+        max_matches = matches[detected_type]
 
         # Calculate confidence score
         # Base confidence on number of matches and text length
@@ -199,6 +242,7 @@ class ResponseDetector:
             ResponseType.CONFIRMATION: self.confirmation_pattern,
             ResponseType.REJECTION: self.rejection_pattern,
             ResponseType.ACKNOWLEDGMENT: self.acknowledgment_pattern,
+            ResponseType.ACTION_REQUIRED: self.action_required_pattern,
             ResponseType.REQUEST_INFO: self.request_info_pattern,
         }
 

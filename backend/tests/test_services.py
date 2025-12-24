@@ -80,11 +80,20 @@ class TestResponseDetector:
         assert response_type.value == "acknowledgment"
         assert confidence > 0.3
 
-    def test_detect_request_info_response(self):
-        """Test detecting a request for more information"""
+    def test_detect_action_required_response(self):
+        """Test detecting an action required response"""
         detector = ResponseDetector()
         response_type, confidence = detector.detect_response_type(
             subject=None, body="Please verify your identity by providing additional documentation."
+        )
+        assert response_type.value == "action_required"
+        assert confidence > 0.3
+
+    def test_detect_request_info_response(self):
+        """Test detecting a request for information or instructions"""
+        detector = ResponseDetector()
+        response_type, confidence = detector.detect_response_type(
+            subject=None, body="Please follow these steps to opt out of our data collection."
         )
         assert response_type.value == "request_info"
         assert confidence > 0.3

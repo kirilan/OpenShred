@@ -409,6 +409,7 @@ def ai_classify_request_responses(
     # Check if any responses are confirmations
     confirmations = [r for r in responses if r.response_type == ResponseType.CONFIRMATION]
     rejections = [r for r in responses if r.response_type == ResponseType.REJECTION]
+    action_required = [r for r in responses if r.response_type == ResponseType.ACTION_REQUIRED]
 
     if confirmations and req.status != RequestStatus.CONFIRMED:
         req.status = RequestStatus.CONFIRMED
@@ -417,6 +418,14 @@ def ai_classify_request_responses(
     elif rejections and not confirmations and req.status != RequestStatus.REJECTED:
         req.status = RequestStatus.REJECTED
         req.rejected_at = max(r.received_date for r in rejections if r.received_date)
+        status_updated = True
+    elif (
+        action_required
+        and not confirmations
+        and not rejections
+        and req.status != RequestStatus.ACTION_REQUIRED
+    ):
+        req.status = RequestStatus.ACTION_REQUIRED
         status_updated = True
 
     db.commit()

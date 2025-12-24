@@ -56,7 +56,7 @@ class GeminiService:
             "responses": [
                 {
                     "response_id": "<string>",
-                    "response_type": "confirmation|rejection|acknowledgment|request_info|unknown",
+                    "response_type": "confirmation|rejection|acknowledgment|action_required|request_info|unknown",
                     "confidence_score": 0.0,
                     "rationale": "<short rationale>",
                 }
@@ -78,7 +78,8 @@ class GeminiService:
             "- confirmation: broker confirms data deletion or removal.\n"
             "- rejection: broker denies the request or says no data found.\n"
             "- acknowledgment: broker received the request and is processing it.\n"
-            "- request_info: broker requests more information or identity verification.\n"
+            "- action_required: broker requires user action or identity verification to proceed.\n"
+            "- request_info: broker provides instructions or asks for details that do not require immediate action.\n"
             "- unknown: none of the above or unclear.\n\n"
             "Thread context (JSON):\n"
             f"{thread_json}\n"
