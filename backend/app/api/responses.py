@@ -66,7 +66,7 @@ def scan_responses(
     to deletion requests.
     """
     # Start background task
-    task = scan_for_responses_task.delay(str(current_user.id), days_back)
+    task = scan_for_responses_task.delay(str(current_user.id), days_back, "manual")
 
     return {
         "task_id": task.id,

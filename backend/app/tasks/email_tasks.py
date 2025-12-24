@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime, timedelta
 
@@ -141,7 +142,7 @@ def scan_inbox_task(self, user_id: str, days_back: int = 90, max_emails: int = 1
 
 
 @celery_app.task(bind=True, max_retries=2)
-def scan_for_responses_task(self, user_id: str, days_back: int = 7):
+def scan_for_responses_task(self, user_id: str, days_back: int = 7, source: str = "manual"):
     """
     Background task to scan for broker responses to deletion requests.
 
@@ -166,6 +167,35 @@ def scan_for_responses_task(self, user_id: str, days_back: int = 7):
         2 * 60,  # 2 minutes
         10 * 60,  # 10 minutes
     ]
+
+    def _log_response_scan(
+        *,
+        responses_found: int,
+        responses_updated: int,
+        requests_updated: int,
+        sent_requests_scanned: int,
+    ) -> None:
+        details = json.dumps(
+            {
+                "source": source,
+                "scan_type": "responses",
+                "days_back": days_back,
+                "sent_requests_scanned": sent_requests_scanned,
+                "responses_found": responses_found,
+                "responses_updated": responses_updated,
+                "requests_updated": requests_updated,
+            }
+        )
+        activity_service.log_activity(
+            user_id=user_id,
+            activity_type=ActivityType.RESPONSE_SCANNED,
+            message=(
+                "Response scan completed: "
+                f"{responses_found} new responses, {responses_updated} re-classified, "
+                f"{requests_updated} requests updated"
+            ),
+            details=details,
+        )
 
     try:
         logger.info(f"Starting response scan for user {user_id}")
@@ -204,6 +234,12 @@ def scan_for_responses_task(self, user_id: str, days_back: int = 7):
         )
 
         if not sent_requests:
+            _log_response_scan(
+                responses_found=0,
+                responses_updated=0,
+                requests_updated=0,
+                sent_requests_scanned=0,
+            )
             return {
                 "status": "completed",
                 "responses_found": 0,
@@ -221,6 +257,12 @@ def scan_for_responses_task(self, user_id: str, days_back: int = 7):
                 broker_domains.update(broker.domains)
 
         if not broker_domains:
+            _log_response_scan(
+                responses_found=0,
+                responses_updated=0,
+                requests_updated=0,
+                sent_requests_scanned=len(sent_requests),
+            )
             return {
                 "status": "completed",
                 "responses_found": 0,
@@ -346,11 +388,11 @@ def scan_for_responses_task(self, user_id: str, days_back: int = 7):
         )
 
         # Log task completion
-        activity_service.log_activity(
-            user_id=user_id,
-            activity_type=ActivityType.RESPONSE_SCANNED,
-            message=f"Response scan completed: {responses_created} new responses, {responses_updated} re-classified, {requests_updated} requests updated",
-            details=f"Sent requests scanned: {len(sent_requests)}, Days back: {days_back}",
+        _log_response_scan(
+            responses_found=responses_created,
+            responses_updated=responses_updated,
+            requests_updated=requests_updated,
+            sent_requests_scanned=len(sent_requests),
         )
 
         return {
@@ -466,7 +508,7 @@ def scan_all_users_for_responses(self):
                 pass  # Don't fail on logging errors
 
             # Trigger scan for each user asynchronously
-            result = scan_for_responses_task.delay(user_id_str, days_back=7)
+            result = scan_for_responses_task.delay(user_id_str, days_back=7, source="automated")
             tasks_triggered.append({"user_id": user_id_str, "task_id": result.id})
             total_scanned += 1
 

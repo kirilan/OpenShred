@@ -193,9 +193,14 @@ export interface TaskStatus {
     error?: string
   }
   result?: {
-    total_scanned: number
-    broker_emails_found: number
-    status: string
+    total_scanned?: number
+    broker_emails_found?: number
+    responses_found?: number
+    responses_updated?: number
+    requests_updated?: number
+    sent_requests_scanned?: number
+    status?: string
+    message?: string
   }
 }
 

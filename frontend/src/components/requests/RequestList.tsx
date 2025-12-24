@@ -1,9 +1,9 @@
-import { useMemo, useState, type ComponentType } from 'react'
+import { useEffect, useMemo, useState, type ComponentType } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useRequests, useCreateRequest, useRequestThread } from '@/hooks/useRequests'
-import { useEmailScans } from '@/hooks/useEmails'
+import { useEmailScans, useScanHistory, useTaskStatus } from '@/hooks/useEmails'
 import { useBrokers } from '@/hooks/useBrokers'
 import { useResponses, useScanResponses, useClassifyResponse } from '@/hooks/useResponses'
 import { DeletionRequest, EmailScan, BrokerResponse, BrokerResponseType, AiClassifyResult } from '@/types'
@@ -37,6 +37,7 @@ import {
 export function RequestList() {
   const { data: requests, isLoading, error, refetch } = useRequests()
   const { data: brokerEmails } = useEmailScans(true)
+  const scanHistory = useScanHistory(25, 0)
   const { data: brokers } = useBrokers()
   const { data: responses } = useResponses()
   const scanResponses = useScanResponses()
@@ -52,10 +53,26 @@ export function RequestList() {
   const [aiResultRequest, setAiResultRequest] = useState<DeletionRequest | null>(null)
   const [scanSuccessMessage, setScanSuccessMessage] = useState<string | null>(null)
   const [scanErrorMessage, setScanErrorMessage] = useState<string | null>(null)
+  const [scanTaskId, setScanTaskId] = useState<string | null>(null)
   const [permissionError, setPermissionError] = useState(false)
   const [createWarning, setCreateWarning] = useState<string | null>(null)
   const [deleteConfirmRequest, setDeleteConfirmRequest] = useState<DeletionRequest | null>(null)
   const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null)
+  const scanTaskStatus = useTaskStatus(scanTaskId)
+  const latestResponseScan = scanHistory.data?.items.find((entry) => entry.scan_type === 'responses') || null
+  const latestResponseScanTime = latestResponseScan ? new Date(latestResponseScan.performed_at) : null
+  const scanState = scanTaskStatus.data?.state
+  const isScanRunning = !!scanTaskId && scanState !== 'SUCCESS' && scanState !== 'FAILURE'
+
+  const formatLastScan = (timestamp: Date | null) => {
+    if (!timestamp) return ''
+    const now = new Date()
+    const diffMs = now.getTime() - timestamp.getTime()
+    const diffMins = Math.floor(diffMs / (1000 * 60))
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins} min ago`
+    return timestamp.toLocaleString()
+  }
 
   // Create a map of broker IDs to broker names for quick lookup
   const brokerMap = new Map(brokers?.map(b => [b.id, b.name]) || [])
@@ -146,15 +163,42 @@ export function RequestList() {
     setScanErrorMessage(null)
     setScanSuccessMessage(null)
     try {
-      await scanResponses.mutateAsync(7)
-      setScanSuccessMessage('Scan complete. Responses updated.')
-      setTimeout(() => setScanSuccessMessage(null), 3000)
+      const result = await scanResponses.mutateAsync(7)
+      setScanTaskId(result.task_id)
     } catch (scanError: any) {
       console.error('Failed to scan responses:', scanError)
       setScanErrorMessage(scanError.response?.data?.detail || 'Scan failed.')
       setTimeout(() => setScanErrorMessage(null), 4000)
     }
   }
+
+  useEffect(() => {
+    if (!scanTaskStatus.data || !scanTaskId) {
+      return
+    }
+
+    if (scanTaskStatus.data.state === 'SUCCESS') {
+      const result = scanTaskStatus.data.result || {}
+      const responsesFound = result.responses_found ?? 0
+      const responsesUpdated = result.responses_updated ?? 0
+      const requestsUpdated = result.requests_updated ?? 0
+      setScanSuccessMessage(
+        `Scan complete: ${responsesFound} new response${responsesFound === 1 ? '' : 's'}, ` +
+          `${responsesUpdated} re-classified, ${requestsUpdated} request${requestsUpdated === 1 ? '' : 's'} updated.`
+      )
+      setTimeout(() => setScanSuccessMessage(null), 5000)
+      setScanTaskId(null)
+      queryClient.invalidateQueries({ queryKey: ['responses'] })
+      queryClient.invalidateQueries({ queryKey: ['requests'] })
+      queryClient.invalidateQueries({ queryKey: ['scanHistory'] })
+    }
+
+    if (scanTaskStatus.data.state === 'FAILURE') {
+      setScanErrorMessage(scanTaskStatus.data.info?.error || 'Response scan failed.')
+      setTimeout(() => setScanErrorMessage(null), 5000)
+      setScanTaskId(null)
+    }
+  }, [scanTaskStatus.data, scanTaskId, queryClient])
 
   const handleAiAssist = async (requestId: string) => {
     setAiProcessingRequestId(requestId)
@@ -239,24 +283,38 @@ export function RequestList() {
             Manage your data deletion requests
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={handleScanResponses}
-            disabled={scanResponses.isPending}
-          >
-            {scanResponses.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Scanning...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Scan for Responses
-              </>
-            )}
-          </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleScanResponses}
+              disabled={scanResponses.isPending || isScanRunning}
+            >
+              {scanResponses.isPending || isScanRunning ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Scanning...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Scan for Responses
+                </>
+              )}
+            </Button>
+            <span
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border text-muted-foreground"
+              title="Scans your inbox for replies to deletion requests and updates request status."
+              aria-label="What does Scan for Responses do?"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </span>
+          </div>
+          {latestResponseScanTime && (
+            <span className="text-sm text-muted-foreground">
+              Last response scan: {formatLastScan(latestResponseScanTime)}
+            </span>
+          )}
         </div>
       </div>
 
