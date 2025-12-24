@@ -27,10 +27,7 @@ def downgrade() -> None:
         "UPDATE broker_responses SET response_type = 'request_info' "
         "WHERE response_type = 'action_required'"
     )
-    op.execute(
-        "UPDATE deletion_requests SET status = 'SENT' "
-        "WHERE status = 'ACTION_REQUIRED'"
-    )
+    op.execute("UPDATE deletion_requests SET status = 'SENT' WHERE status = 'ACTION_REQUIRED'")
 
     op.execute("ALTER TYPE responsetype RENAME TO responsetype_old")
     op.execute(
@@ -45,10 +42,7 @@ def downgrade() -> None:
     op.execute("DROP TYPE responsetype_old")
 
     op.execute("ALTER TYPE requeststatus RENAME TO requeststatus_old")
-    op.execute(
-        "CREATE TYPE requeststatus AS ENUM "
-        "('PENDING', 'SENT', 'CONFIRMED', 'REJECTED')"
-    )
+    op.execute("CREATE TYPE requeststatus AS ENUM ('PENDING', 'SENT', 'CONFIRMED', 'REJECTED')")
     op.execute(
         "ALTER TABLE deletion_requests "
         "ALTER COLUMN status "

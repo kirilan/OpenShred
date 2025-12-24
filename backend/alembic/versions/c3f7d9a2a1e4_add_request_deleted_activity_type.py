@@ -23,8 +23,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.execute(
-        "UPDATE activity_logs SET activity_type = 'info' "
-        "WHERE activity_type = 'request_deleted'"
+        "UPDATE activity_logs SET activity_type = 'info' WHERE activity_type = 'request_deleted'"
     )
     op.execute("ALTER TYPE activitytype RENAME TO activitytype_old")
     op.execute(

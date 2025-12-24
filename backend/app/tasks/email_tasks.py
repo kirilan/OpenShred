@@ -229,9 +229,7 @@ def scan_for_responses_task(self, user_id: str, days_back: int = 7, source: str 
             db.query(DeletionRequest)
             .filter(
                 DeletionRequest.user_id == user_id,
-                DeletionRequest.status.in_(
-                    [RequestStatus.SENT, RequestStatus.ACTION_REQUIRED]
-                ),
+                DeletionRequest.status.in_([RequestStatus.SENT, RequestStatus.ACTION_REQUIRED]),
             )
             .all()
         )
@@ -495,11 +493,7 @@ def scan_all_users_for_responses(self):
         users_with_sent = (
             db.query(User.id)
             .join(DeletionRequest, DeletionRequest.user_id == User.id)
-            .filter(
-                DeletionRequest.status.in_(
-                    [RequestStatus.SENT, RequestStatus.ACTION_REQUIRED]
-                )
-            )
+            .filter(DeletionRequest.status.in_([RequestStatus.SENT, RequestStatus.ACTION_REQUIRED]))
             .distinct()
             .all()
         )
