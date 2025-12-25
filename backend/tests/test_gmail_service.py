@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from google.oauth2.credentials import Credentials
 from googleapiclient.errors import HttpError
-from sqlalchemy.orm import Session
 
 from app.exceptions import GmailQuotaExceededError
 from app.models.user import User
@@ -102,7 +101,7 @@ class TestGmailServiceMessages:
         """Test listing Gmail messages"""
         service = GmailService()
 
-        with patch.object(service, "get_credentials") as mock_get_creds:
+        with patch.object(service, "get_credentials"):
             with patch("app.services.gmail_service.build") as mock_build:
                 mock_list = MagicMock()
                 mock_list.execute.return_value = {"messages": [{"id": "msg-1"}, {"id": "msg-2"}]}
@@ -294,9 +293,7 @@ class TestGmailServiceBodyExtraction:
         """Test extracting body when no text/plain part exists"""
         service = GmailService()
 
-        payload = {
-            "parts": [{"mimeType": "text/html", "body": {"data": "PGh0bWw+PC9odG1sPg=="}}]
-        }
+        payload = {"parts": [{"mimeType": "text/html", "body": {"data": "PGh0bWw+PC9odG1sPg=="}}]}
 
         body = service._extract_body(payload)
 

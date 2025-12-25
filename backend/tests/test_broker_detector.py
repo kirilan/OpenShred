@@ -203,9 +203,7 @@ class TestBrokerDetectorBodyPreview:
 
     def test_get_body_preview_html(self, detector: BrokerDetector):
         """Test preview from HTML body"""
-        preview = detector.get_body_preview(
-            "<html><body><p>Hello world!</p></body></html>", "", 20
-        )
+        preview = detector.get_body_preview("<html><body><p>Hello world!</p></body></html>", "", 20)
         assert "Hello world" in preview
 
     def test_get_body_preview_truncated(self, detector: BrokerDetector):

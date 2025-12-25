@@ -1,10 +1,9 @@
 """Tests for the email scanner service"""
 
 import base64
-from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from datetime import datetime
+from unittest.mock import patch
 
-import pytest
 from sqlalchemy.orm import Session
 
 from app.models.data_broker import DataBroker
@@ -119,9 +118,7 @@ class TestEmailScannerScanInbox:
 
         with patch.object(scanner.broker_service, "get_all_brokers", return_value=[]):
             with patch.object(scanner.gmail_service, "list_messages", return_value=[]):
-                with patch.object(
-                    scanner.gmail_service, "list_sent_messages", return_value=[]
-                ):
+                with patch.object(scanner.gmail_service, "list_sent_messages", return_value=[]):
                     scans = scanner.scan_inbox(test_user)
 
                     assert scans == []
@@ -134,9 +131,7 @@ class TestEmailScannerScanInbox:
 
         with patch.object(scanner.broker_service, "get_all_brokers", return_value=[]):
             with patch.object(scanner.gmail_service, "list_messages", return_value=[]):
-                with patch.object(
-                    scanner.gmail_service, "list_sent_messages", return_value=[]
-                ):
+                with patch.object(scanner.gmail_service, "list_sent_messages", return_value=[]):
                     scanner.scan_inbox(test_user)
 
                     assert test_user.last_scan_at != original_last_scan
@@ -197,9 +192,7 @@ class TestEmailScannerReceivedEmails:
         }
 
         with patch.object(scanner.gmail_service, "list_messages", return_value=message_list):
-            with patch.object(
-                scanner.gmail_service, "get_message", return_value=message_data
-            ):
+            with patch.object(scanner.gmail_service, "get_message", return_value=message_data):
                 with patch.object(
                     scanner.gmail_service,
                     "get_message_headers",
@@ -245,9 +238,7 @@ class TestEmailScannerSentEmails:
 
         assert scans == []
 
-    def test_scan_sent_creates_query(
-        self, db: Session, test_user: User, test_broker: DataBroker
-    ):
+    def test_scan_sent_creates_query(self, db: Session, test_user: User, test_broker: DataBroker):
         """Test that sent email scan builds correct query"""
         scanner = EmailScanner(db)
 
@@ -260,9 +251,7 @@ class TestEmailScannerSentEmails:
             assert test_broker.domains[0] in query_arg
             assert "after:" in query_arg
 
-    def test_scan_sent_skips_existing(
-        self, db: Session, test_user: User, test_broker: DataBroker
-    ):
+    def test_scan_sent_skips_existing(self, db: Session, test_user: User, test_broker: DataBroker):
         """Test that existing sent scans are not duplicated"""
         # Create existing scan with required fields
         existing_scan = EmailScan(
@@ -326,9 +315,7 @@ class TestEmailScannerAutoCreateRequests:
         assert len(requests) == 1
         assert requests[0].id == existing_request.id
 
-    def test_auto_create_new_request(
-        self, db: Session, test_user: User, test_broker: DataBroker
-    ):
+    def test_auto_create_new_request(self, db: Session, test_user: User, test_broker: DataBroker):
         """Test creating new deletion request from scan"""
         # Create email scan
         scan = EmailScan(
@@ -421,9 +408,7 @@ class TestEmailScannerAnalysis:
 class TestEmailScannerIntegration:
     """Integration tests for full scan workflow"""
 
-    def test_full_scan_workflow(
-        self, db: Session, test_user: User, test_broker: DataBroker
-    ):
+    def test_full_scan_workflow(self, db: Session, test_user: User, test_broker: DataBroker):
         """Test complete scan workflow from inbox to auto-created requests"""
         scanner = EmailScanner(db)
 
@@ -445,12 +430,8 @@ class TestEmailScannerIntegration:
         }
 
         with patch.object(scanner.broker_service, "get_all_brokers", return_value=[test_broker]):
-            with patch.object(
-                scanner.gmail_service, "list_messages", return_value=message_list
-            ):
-                with patch.object(
-                    scanner.gmail_service, "get_message", return_value=message_data
-                ):
+            with patch.object(scanner.gmail_service, "list_messages", return_value=message_list):
+                with patch.object(scanner.gmail_service, "get_message", return_value=message_data):
                     with patch.object(
                         scanner.gmail_service,
                         "get_message_headers",

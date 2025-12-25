@@ -34,7 +34,10 @@ class TestGeminiServiceClassify:
 
         with patch("app.services.gemini_service.requests.post", return_value=mock_response):
             result = service.classify_thread(
-                {"request_id": "req-1", "responses": [{"id": "123", "body": "Your data has been deleted."}]}
+                {
+                    "request_id": "req-1",
+                    "responses": [{"id": "123", "body": "Your data has been deleted."}],
+                }
             )
 
         assert result["model"] == "gemini-1.5-flash"
@@ -72,9 +75,7 @@ class TestGeminiServiceClassify:
                 {
                     "content": {
                         "parts": [
-                            {
-                                "text": '```json\n{"model": "gemini-1.5-flash", "responses": []}\n```'
-                            }
+                            {"text": '```json\n{"model": "gemini-1.5-flash", "responses": []}\n```'}
                         ]
                     }
                 }

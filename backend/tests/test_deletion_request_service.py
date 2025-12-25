@@ -15,9 +15,7 @@ from app.services.deletion_request_service import DeletionRequestService
 class TestDeletionRequestServiceCreate:
     """Tests for create_request method"""
 
-    def test_create_request_success(
-        self, db: Session, test_user: User, test_broker: DataBroker
-    ):
+    def test_create_request_success(self, db: Session, test_user: User, test_broker: DataBroker):
         """Test creating a new deletion request"""
         service = DeletionRequestService(db)
         request = service.create_request(test_user, test_broker)
@@ -39,7 +37,9 @@ class TestDeletionRequestServiceCreate:
 
         assert request is not None
         # Body should mention CCPA or California
-        assert "CCPA" in request.generated_email_body or "California" in request.generated_email_body
+        assert (
+            "CCPA" in request.generated_email_body or "California" in request.generated_email_body
+        )
 
     def test_create_request_duplicate_fails(
         self, db: Session, test_user: User, test_broker: DataBroker
@@ -116,9 +116,7 @@ class TestDeletionRequestServiceGetRequests:
         dates = [r.created_at for r in requests]
         assert dates == sorted(dates, reverse=True)
 
-    def test_get_request_by_id_found(
-        self, db: Session, test_deletion_request: DeletionRequest
-    ):
+    def test_get_request_by_id_found(self, db: Session, test_deletion_request: DeletionRequest):
         """Test getting a specific request by ID"""
         service = DeletionRequestService(db)
         request = service.get_request_by_id(test_deletion_request.id)
@@ -139,48 +137,34 @@ class TestDeletionRequestServiceGetRequests:
 class TestDeletionRequestServiceUpdateStatus:
     """Tests for update_request_status method"""
 
-    def test_update_status_to_sent(
-        self, db: Session, test_deletion_request: DeletionRequest
-    ):
+    def test_update_status_to_sent(self, db: Session, test_deletion_request: DeletionRequest):
         """Test updating status to SENT sets sent_at"""
         service = DeletionRequestService(db)
 
-        request = service.update_request_status(
-            test_deletion_request.id, RequestStatus.SENT
-        )
+        request = service.update_request_status(test_deletion_request.id, RequestStatus.SENT)
 
         assert request.status == RequestStatus.SENT
         assert request.sent_at is not None
 
-    def test_update_status_to_confirmed(
-        self, db: Session, sent_deletion_request: DeletionRequest
-    ):
+    def test_update_status_to_confirmed(self, db: Session, sent_deletion_request: DeletionRequest):
         """Test updating status to CONFIRMED sets confirmed_at"""
         service = DeletionRequestService(db)
 
-        request = service.update_request_status(
-            sent_deletion_request.id, RequestStatus.CONFIRMED
-        )
+        request = service.update_request_status(sent_deletion_request.id, RequestStatus.CONFIRMED)
 
         assert request.status == RequestStatus.CONFIRMED
         assert request.confirmed_at is not None
 
-    def test_update_status_to_rejected(
-        self, db: Session, sent_deletion_request: DeletionRequest
-    ):
+    def test_update_status_to_rejected(self, db: Session, sent_deletion_request: DeletionRequest):
         """Test updating status to REJECTED sets rejected_at"""
         service = DeletionRequestService(db)
 
-        request = service.update_request_status(
-            sent_deletion_request.id, RequestStatus.REJECTED
-        )
+        request = service.update_request_status(sent_deletion_request.id, RequestStatus.REJECTED)
 
         assert request.status == RequestStatus.REJECTED
         assert request.rejected_at is not None
 
-    def test_update_status_with_notes(
-        self, db: Session, test_deletion_request: DeletionRequest
-    ):
+    def test_update_status_with_notes(self, db: Session, test_deletion_request: DeletionRequest):
         """Test updating status with notes"""
         service = DeletionRequestService(db)
 
@@ -238,9 +222,7 @@ class TestDeletionRequestServiceSendEmail:
 
         assert "Cannot send request with status" in str(exc_info.value)
 
-    def test_send_email_no_privacy_email_fails(
-        self, db: Session, test_user: User
-    ):
+    def test_send_email_no_privacy_email_fails(self, db: Session, test_user: User):
         """Test that sending fails if broker has no privacy email"""
         # Create broker without privacy email
         broker = DataBroker(
@@ -270,9 +252,7 @@ class TestDeletionRequestServiceSendEmail:
 
         assert "no privacy email" in str(exc_info.value)
 
-    def test_send_email_rate_limited(
-        self, db: Session, test_deletion_request: DeletionRequest
-    ):
+    def test_send_email_rate_limited(self, db: Session, test_deletion_request: DeletionRequest):
         """Test that rate-limited requests can't be sent"""
         service = DeletionRequestService(db)
 
@@ -287,9 +267,7 @@ class TestDeletionRequestServiceSendEmail:
 
         assert "rate limit" in str(exc_info.value).lower()
 
-    def test_send_email_permission_error(
-        self, db: Session, test_deletion_request: DeletionRequest
-    ):
+    def test_send_email_permission_error(self, db: Session, test_deletion_request: DeletionRequest):
         """Test handling of permission errors"""
         service = DeletionRequestService(db)
 
@@ -301,9 +279,7 @@ class TestDeletionRequestServiceSendEmail:
 
         assert "permissions" in str(exc_info.value).lower()
 
-    def test_send_email_generic_error(
-        self, db: Session, test_deletion_request: DeletionRequest
-    ):
+    def test_send_email_generic_error(self, db: Session, test_deletion_request: DeletionRequest):
         """Test handling of generic send errors"""
         service = DeletionRequestService(db)
 

@@ -1,7 +1,6 @@
 """Tests for the analytics service"""
 
 from datetime import datetime, timedelta
-from uuid import UUID
 
 import pytest
 from sqlalchemy.orm import Session
@@ -46,7 +45,9 @@ class TestAnalyticsServiceUserStats:
         assert stats["rejected"] == 1
         assert stats["pending_requests"] == 1
 
-    def test_get_user_stats_success_rate(self, db: Session, test_user: User, test_broker: DataBroker):
+    def test_get_user_stats_success_rate(
+        self, db: Session, test_user: User, test_broker: DataBroker
+    ):
         """Test success rate calculation"""
         # Create requests with known outcomes
         now = datetime.utcnow()
@@ -143,9 +144,7 @@ class TestAnalyticsServiceBrokerRanking:
         assert len(rankings) == 1
         assert rankings[0]["total_requests"] == 2
 
-    def test_get_broker_ranking_sorted_by_success_rate(
-        self, db: Session, test_user: User
-    ):
+    def test_get_broker_ranking_sorted_by_success_rate(self, db: Session, test_user: User):
         """Test that rankings are sorted by success rate"""
         # Create two brokers with different success rates
         broker_high = DataBroker(

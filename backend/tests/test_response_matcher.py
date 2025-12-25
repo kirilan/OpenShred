@@ -311,9 +311,7 @@ class TestResponseMatcherNoMatch:
 class TestResponseMatcherOldRequests:
     """Tests for time-based filtering"""
 
-    def test_no_match_old_request(
-        self, db: Session, test_user: User, test_broker: DataBroker
-    ):
+    def test_no_match_old_request(self, db: Session, test_user: User, test_broker: DataBroker):
         """Test no match when request is older than 90 days"""
         matcher = ResponseMatcher(db)
 

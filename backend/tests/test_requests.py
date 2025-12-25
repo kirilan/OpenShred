@@ -1,10 +1,8 @@
 """Tests for deletion request API endpoints"""
 
-from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -17,7 +15,12 @@ class TestCreateDeletionRequest:
     """Tests for POST /requests/"""
 
     def test_create_request_success(
-        self, client: TestClient, db: Session, test_user: User, test_broker: DataBroker, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        test_broker: DataBroker,
+        auth_headers: dict,
     ):
         """Test creating a new deletion request"""
         response = client.post(
@@ -47,7 +50,12 @@ class TestCreateDeletionRequest:
         assert "Broker not found" in response.json()["detail"]
 
     def test_create_request_duplicate(
-        self, client: TestClient, db: Session, test_user: User, test_broker: DataBroker, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        test_broker: DataBroker,
+        auth_headers: dict,
     ):
         """Test creating duplicate request fails"""
         # Create first request
@@ -68,7 +76,12 @@ class TestCreateDeletionRequest:
         assert "already exists" in response.json()["detail"]
 
     def test_create_request_ccpa_framework(
-        self, client: TestClient, db: Session, test_user: User, test_broker: DataBroker, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        test_broker: DataBroker,
+        auth_headers: dict,
     ):
         """Test creating request with CCPA framework"""
         response = client.post(
@@ -80,7 +93,9 @@ class TestCreateDeletionRequest:
         assert response.status_code == 200
         data = response.json()
         # Email body should mention CCPA or California
-        assert "CCPA" in data["generated_email_body"] or "California" in data["generated_email_body"]
+        assert (
+            "CCPA" in data["generated_email_body"] or "California" in data["generated_email_body"]
+        )
 
     def test_create_request_unauthorized(self, client: TestClient, test_broker: DataBroker):
         """Test creating request without authentication"""
@@ -103,7 +118,12 @@ class TestListDeletionRequests:
         assert response.json() == []
 
     def test_list_requests_with_data(
-        self, client: TestClient, db: Session, test_user: User, test_broker: DataBroker, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        test_broker: DataBroker,
+        auth_headers: dict,
     ):
         """Test listing requests returns user's requests"""
         # Create a request
@@ -126,7 +146,13 @@ class TestListDeletionRequests:
         assert data[0]["broker_id"] == str(test_broker.id)
 
     def test_list_requests_excludes_other_users(
-        self, client: TestClient, db: Session, test_user: User, admin_user: User, test_broker: DataBroker, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        admin_user: User,
+        test_broker: DataBroker,
+        auth_headers: dict,
     ):
         """Test that users only see their own requests"""
         # Create request for another user
@@ -158,7 +184,12 @@ class TestGetDeletionRequest:
     """Tests for GET /requests/{request_id}"""
 
     def test_get_request_success(
-        self, client: TestClient, db: Session, test_user: User, test_deletion_request: DeletionRequest, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        test_deletion_request: DeletionRequest,
+        auth_headers: dict,
     ):
         """Test getting a specific request"""
         response = client.get(
@@ -182,7 +213,13 @@ class TestGetDeletionRequest:
         assert "Request not found" in response.json()["detail"]
 
     def test_get_request_forbidden(
-        self, client: TestClient, db: Session, test_user: User, admin_user: User, test_broker: DataBroker, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        admin_user: User,
+        test_broker: DataBroker,
+        auth_headers: dict,
     ):
         """Test getting another user's request"""
         # Create request for another user
@@ -210,7 +247,12 @@ class TestUpdateRequestStatus:
     """Tests for PUT /requests/{request_id}/status"""
 
     def test_update_status_to_sent(
-        self, client: TestClient, db: Session, test_user: User, test_deletion_request: DeletionRequest, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        test_deletion_request: DeletionRequest,
+        auth_headers: dict,
     ):
         """Test updating request status to SENT"""
         response = client.put(
@@ -226,7 +268,12 @@ class TestUpdateRequestStatus:
         assert data["sent_at"] is not None
 
     def test_update_status_to_confirmed(
-        self, client: TestClient, db: Session, test_user: User, sent_deletion_request: DeletionRequest, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        sent_deletion_request: DeletionRequest,
+        auth_headers: dict,
     ):
         """Test updating request status to CONFIRMED"""
         response = client.put(
@@ -241,7 +288,11 @@ class TestUpdateRequestStatus:
         assert data["confirmed_at"] is not None
 
     def test_update_status_invalid(
-        self, client: TestClient, test_user: User, test_deletion_request: DeletionRequest, auth_headers: dict
+        self,
+        client: TestClient,
+        test_user: User,
+        test_deletion_request: DeletionRequest,
+        auth_headers: dict,
     ):
         """Test updating to invalid status"""
         response = client.put(
@@ -269,7 +320,12 @@ class TestDeleteDeletionRequest:
     """Tests for DELETE /requests/{request_id}"""
 
     def test_delete_request_success(
-        self, client: TestClient, db: Session, test_user: User, test_deletion_request: DeletionRequest, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        test_deletion_request: DeletionRequest,
+        auth_headers: dict,
     ):
         """Test soft deleting a request"""
         response = client.delete(
@@ -283,7 +339,9 @@ class TestDeleteDeletionRequest:
         db.refresh(test_deletion_request)
         assert test_deletion_request.deleted_at is not None
 
-    def test_delete_request_not_found(self, client: TestClient, test_user: User, auth_headers: dict):
+    def test_delete_request_not_found(
+        self, client: TestClient, test_user: User, auth_headers: dict
+    ):
         """Test deleting non-existent request"""
         response = client.delete(
             f"/requests/{uuid4()}",
@@ -293,7 +351,13 @@ class TestDeleteDeletionRequest:
         assert response.status_code == 404
 
     def test_delete_request_forbidden(
-        self, client: TestClient, db: Session, test_user: User, admin_user: User, test_broker: DataBroker, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        admin_user: User,
+        test_broker: DataBroker,
+        auth_headers: dict,
     ):
         """Test deleting another user's request"""
         # Create request for another user
@@ -320,7 +384,11 @@ class TestEmailPreview:
     """Tests for GET /requests/{request_id}/email-preview"""
 
     def test_get_email_preview_success(
-        self, client: TestClient, test_user: User, test_deletion_request: DeletionRequest, auth_headers: dict
+        self,
+        client: TestClient,
+        test_user: User,
+        test_deletion_request: DeletionRequest,
+        auth_headers: dict,
     ):
         """Test getting email preview"""
         response = client.get(
@@ -334,7 +402,9 @@ class TestEmailPreview:
         assert "body" in data
         assert "to_email" in data
 
-    def test_get_email_preview_not_found(self, client: TestClient, test_user: User, auth_headers: dict):
+    def test_get_email_preview_not_found(
+        self, client: TestClient, test_user: User, auth_headers: dict
+    ):
         """Test email preview for non-existent request"""
         response = client.get(
             f"/requests/{uuid4()}/email-preview",
@@ -344,7 +414,12 @@ class TestEmailPreview:
         assert response.status_code == 404
 
     def test_get_email_preview_forbidden(
-        self, client: TestClient, db: Session, admin_user: User, test_broker: DataBroker, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        admin_user: User,
+        test_broker: DataBroker,
+        auth_headers: dict,
     ):
         """Test email preview for another user's request"""
         other_request = DeletionRequest(
@@ -370,7 +445,12 @@ class TestSendRequest:
     """Tests for POST /requests/{request_id}/send"""
 
     def test_send_request_success(
-        self, client: TestClient, db: Session, test_user: User, test_deletion_request: DeletionRequest, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        test_deletion_request: DeletionRequest,
+        auth_headers: dict,
     ):
         """Test sending a deletion request"""
         with patch("app.services.gmail_service.GmailService") as mock_gmail_class:
@@ -393,7 +473,12 @@ class TestSendRequest:
             assert data["gmail_thread_id"] == "thread-456"
 
     def test_send_request_not_pending(
-        self, client: TestClient, db: Session, test_user: User, sent_deletion_request: DeletionRequest, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        sent_deletion_request: DeletionRequest,
+        auth_headers: dict,
     ):
         """Test sending a request that's already sent"""
         response = client.post(
@@ -415,7 +500,12 @@ class TestSendRequest:
         assert response.status_code in [400, 404]
 
     def test_send_request_forbidden(
-        self, client: TestClient, db: Session, admin_user: User, test_broker: DataBroker, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        admin_user: User,
+        test_broker: DataBroker,
+        auth_headers: dict,
     ):
         """Test sending another user's request"""
         other_request = DeletionRequest(
@@ -438,7 +528,12 @@ class TestSendRequest:
         assert response.status_code in [400, 403]
 
     def test_send_request_permission_error(
-        self, client: TestClient, db: Session, test_user: User, test_deletion_request: DeletionRequest, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        test_deletion_request: DeletionRequest,
+        auth_headers: dict,
     ):
         """Test sending request with missing Gmail permissions"""
         with patch("app.services.gmail_service.GmailService") as mock_gmail_class:
@@ -459,7 +554,11 @@ class TestThreadEmails:
     """Tests for GET /requests/{request_id}/thread"""
 
     def test_get_thread_emails_no_thread(
-        self, client: TestClient, test_user: User, test_deletion_request: DeletionRequest, auth_headers: dict
+        self,
+        client: TestClient,
+        test_user: User,
+        test_deletion_request: DeletionRequest,
+        auth_headers: dict,
     ):
         """Test getting thread emails for request without thread"""
         response = client.get(
@@ -471,7 +570,12 @@ class TestThreadEmails:
         assert response.json() == []
 
     def test_get_thread_emails_with_thread(
-        self, client: TestClient, db: Session, test_user: User, sent_deletion_request: DeletionRequest, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        test_user: User,
+        sent_deletion_request: DeletionRequest,
+        auth_headers: dict,
     ):
         """Test getting thread emails for request with Gmail thread"""
         # The endpoint may return empty if thread ID is not set or Gmail service fails
@@ -486,7 +590,9 @@ class TestThreadEmails:
         # Returns a list (may be empty if no thread or Gmail fails)
         assert isinstance(data, list)
 
-    def test_get_thread_emails_not_found(self, client: TestClient, test_user: User, auth_headers: dict):
+    def test_get_thread_emails_not_found(
+        self, client: TestClient, test_user: User, auth_headers: dict
+    ):
         """Test getting thread for non-existent request"""
         response = client.get(
             f"/requests/{uuid4()}/thread",
@@ -496,7 +602,12 @@ class TestThreadEmails:
         assert response.status_code == 404
 
     def test_get_thread_emails_forbidden(
-        self, client: TestClient, db: Session, admin_user: User, test_broker: DataBroker, auth_headers: dict
+        self,
+        client: TestClient,
+        db: Session,
+        admin_user: User,
+        test_broker: DataBroker,
+        auth_headers: dict,
     ):
         """Test getting thread for another user's request"""
         other_request = DeletionRequest(

@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta
 
-import pytest
 from sqlalchemy.orm import Session
 
 from app.models.activity_log import ActivityLog, ActivityType
@@ -133,9 +132,7 @@ class TestActivityLogServiceGetActivities:
         assert len(activities) == 1
         assert activities[0].message == "Test user activity"
 
-    def test_get_activities_filter_by_broker(
-        self, db: Session, test_user: User, test_broker
-    ):
+    def test_get_activities_filter_by_broker(self, db: Session, test_user: User, test_broker):
         """Test filtering activities by broker ID"""
         service = ActivityLogService(db)
 
@@ -175,9 +172,7 @@ class TestActivityLogServiceGetActivities:
             message="Info activity",
         )
 
-        activities = service.get_user_activities(
-            test_user.id, activity_type=ActivityType.ERROR
-        )
+        activities = service.get_user_activities(test_user.id, activity_type=ActivityType.ERROR)
 
         assert len(activities) == 1
         assert activities[0].message == "Error activity"
@@ -187,7 +182,7 @@ class TestActivityLogServiceGetActivities:
         service = ActivityLogService(db)
 
         # Create recent activity
-        recent = service.log_activity(
+        service.log_activity(
             user_id=test_user.id,
             activity_type=ActivityType.INFO,
             message="Recent",
